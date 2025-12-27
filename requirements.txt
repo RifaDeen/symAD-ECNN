@@ -1,0 +1,38 @@
+# SymAD-ECNN Requirements
+# Install in Google Colab or local environment
+
+# Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Equivariant Neural Networks
+e2cnn
+
+# Image Processing
+nibabel
+scikit-image
+scipy
+opencv-python
+
+# Loss Functions
+pytorch-msssim
+
+# Machine Learning & Evaluation
+scikit-learn
+numpy
+pandas
+
+# Visualization
+matplotlib
+seaborn
+plotly
+
+# Jupyter
+jupyter
+ipykernel
+
+# Progress Bars
+tqdm
+
+# Note: In Google Colab, most packages are pre-installed
+# Only need to install: e2cnn, pytorch-msssim, nibabel
