@@ -207,19 +207,36 @@ pip install nibabel scikit-image scipy
 
 ## 📊 Datasets (Table 6 - Data Requirements)
 
-### IXI Dataset (Normal Brains)
-- **Source**: Brain Development Initiative
-- **Size**: 600 MR images from healthy subjects
-- **Preprocessed**: 16,771 slices (128×128, [0,1] normalized)
-- **Split**: 90% train (15,093), 10% validation (1,678)
+### IXI Dataset (Normal Brains - Training)
+- **Source**: [Kaggle Preprocessed OASIS/Epilepsy/IXI](https://www.kaggle.com/datasets/hamedamin/preprocessed-oasis-and-epilepsy-and-ixi)
+- **Original**: IXI Dataset (Brain Development Initiative)
+- **Content**: T1-weighted MRI Gray Matter (GM) segmented maps
+- **Preprocessing Applied**: CAT12 Toolbox (SPM/MATLAB)
+  - Skull stripping
+  - MNI standard space registration  
+  - GM/WM tissue segmentation
+  - Jacobian mapping
+- **Files Used**: `mwp1*.nii` (Gray Matter maps only)
+- **Subjects**: ~600 healthy individuals
+- **Your Processing**: Extract slices → normalize [0,1] → filter (mean>0.1) → resize 128×128
+- **Size**: 16,771 preprocessed slices saved as .npy files
+- **Split**: 90% train (15,094), 10% validation (1,677)
 - **Purpose**: Learn normal brain anatomy (unsupervised training)
+- **License**: CC BY-SA 3.0
+- **Storage**: Google Drive (`data/processed_ixi/train/` and `val/`)
 
-### BraTS 2021 Dataset (Tumor Brains)
-- **Source**: RSNA-ASNR-MICCAI Challenge
-- **Size**: 2000+ manually labeled mpMRI scans (adult glioma patients)
-- **Preprocessed**: ~1000-2000 T1 slices (128×128, [0,1] normalized)
-- **Split**: 100% test set
-- **Purpose**: Evaluate anomaly detection performance
+### BraTS 2021 Dataset (Tumor Brains - Testing)
+- **Source**: RSNA-ASNR-MICCAI Brain Tumor Segmentation Challenge
+- **Content**: Multi-modal MRI of adult glioma patients
+- **Files Used**: `*_t1.nii.gz` (T1-weighted modality only)
+- **Subjects**: ~100 patients (from local: `data/brats2021/`)
+- **Your Processing**: Extract T1 slices → normalize [0,1] → filter → resize 128×128
+- **Size**: ~1,000-2,000 preprocessed T1 slices
+- **Split**: 100% test set (no train/val split)
+- **Purpose**: Evaluate anomaly detection on unseen tumor cases
+- **Storage**: Upload processed .npy files to Google Drive (`data/brats2021_processed/`)
+
+**Rationale**: IXI provides normal brain patterns for autoencoder training. BraTS provides abnormal (tumorous) brains for testing - high reconstruction error on tumors = anomaly detected.
 
 ---
 
