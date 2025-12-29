@@ -53,6 +53,9 @@ data/ixi/
 data/processed_ixi/
 data/resized_ixi/
 
+# BraTS preprocessed data (LOCAL ONLY)
+data/brats2021_processed/
+
 # Preprocessed files
 *.npy
 *.npz
