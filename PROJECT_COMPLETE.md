@@ -1,4 +1,26 @@
-# 🎉 SymAD-ECNN: PROJECT COMPLETION SUMMARY
+# 🎉 SymAD-ECNN: PROJECT STATUS UPDATE
+
+## 📊 Current Status: Preprocessing Fixes Applied
+
+**Date**: January 4, 2026  
+**Phase**: Preprocessing refinement for accurate model training  
+**Next**: Fresh preprocessing with corrected parameters
+
+---
+
+## 🔍 Issues Discovered & Fixed
+
+### 1. Orientation Mismatch
+- **Problem**: BraTS and IXI had different anatomical orientations
+- **Impact**: AUROC = 1.0 (model learned format differences, not tumor patterns)
+- **Solution**: Apply `nib.as_closest_canonical()` → RAS orientation for both datasets ✅
+
+### 2. Image Blurriness
+- **Problem**: Linear interpolation (`order=1`) caused blurry resized images
+- **Impact**: Loss of tumor boundary details, reduced detection accuracy
+- **Solution**: Bicubic interpolation (`order=3`) for sharp, detailed images ✅
+
+---
 
 ## ✅ Implementation Complete - Aligned with Research Proposal
 
@@ -11,11 +33,20 @@ Your **SymAD-ECNN** (Symmetry-Aware Anomaly Detection with Equivariant CNN) proj
 ## 📦 Implemented Components (Proposal Alignment)
 
 ### 1. **Data Preprocessing Pipeline** ✅ (FR2, Section 3.3.5 - Data Pre-processing)
-- **File**: `notebooks/brats2021_t1_preprocessing.ipynb`
-- **Purpose**: Extract T1 slices from BraTS 2021 dataset (Table 6 - Data Requirements)
-- **Methodology**: Preserves anatomical geometries without excessive augmentation (proposal requirement)
-- **Output**: ~1000-2000 preprocessed `.npy` files (128×128, normalized [0,1])
-- **Status**: **Complete with 20 cells** - Ready for Google Drive upload
+- **Files**: 
+  - `notebooks/brats_preprocessing_complete.py` - Complete BraTS pipeline with fixes
+  - `notebooks/ixi_t1_preprocessing.ipynb` - IXI pipeline (Colab with GPU)
+- **Purpose**: Extract T1 slices from BraTS 2021 and IXI datasets
+- **Methodology**: Preserves anatomical geometries with RAS standardization
+- **Key Features**:
+  - ✅ RAS orientation correction (`nib.as_closest_canonical()`)
+  - ✅ Bicubic interpolation (`order=3`) for sharp images
+  - ✅ Skull stripping (IXI via HD-BET)
+  - ✅ Consistent 128×128 normalization
+- **Output**: 
+  - BraTS: ~5,000 test slices (4 per patient)
+  - IXI: ~25,000 training slices (22.5k train, 2.5k val)
+- **Status**: **Fixes applied, ready for fresh preprocessing**
 
 ### 2. **Model Training Notebooks** ✅ (FR3, Section 3.3.5 - Model Selection & Training)
 
