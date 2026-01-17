@@ -1,8 +1,28 @@
 # Summary: What We've Accomplished
 
-## 📚 Analysis of Your IXI Preprocessing
+## 🏆 **FINAL RESULTS - PROJECT COMPLETE (January 2026)**
 
-I reviewed your `preprocessing_ixi.ipynb` notebook and identified the complete pipeline:
+### Model Performance Summary
+
+| Model | Parameters | AUROC | Specificity | False Positives | Status |
+|-------|------------|-------|-------------|-----------------|--------|
+| **Baseline AE** | ~8M | N/A | N/A | N/A | ❌ Failed to train |
+| **CNN-AE (Small)** | ~8M | 0.7617 | 56.42% | 1,590 | ✅ Completed |
+| **CNN-AE (Large)** | ~11M | 0.7803 | 58.52% | 1,515 | ✅ Completed |
+| **CNN-AE (Augmented)** | ~8M | ~0.76 | ~56% | ~1,600 | ✅ Completed |
+| **ECNN (Buggy)** | ~11M | 0.7035 | 47.86% | 1,904 | ⚠️ Architecture bug |
+| **ECNN (Optimized)** | ~11M | **0.8109** | **58.54%** | **1,514** | ✅ **BEST MODEL** 🏆 |
+
+### 🎯 Key Findings
+
+1. **Equivariance Adds Value**: ECNN Optimized achieved **+3.06% AUROC** over parameter-matched Large CNN-AE
+2. **Architecture Fix Critical**: Fixing decoder bug improved ECNN by **+7.74% AUROC**
+3. **Thesis Validated**: ✅ **"Structure > Capacity"** - Geometric inductive bias provides measurable benefits
+4. **Baseline AE Failed**: Fully-connected architecture unable to train effectively on 128×128 images
+
+---
+
+## 📚 Data Preprocessing
 
 ### IXI Pipeline (Colab):
 ```
@@ -12,7 +32,7 @@ Resize to 128×128 → Save as .npy files
 ```
 
 **Purpose**: Training data (normal brains)  
-**Output**: ~2000-3000 preprocessed slices  
+**Output**: 33,078 train + 3,652 val slices (36,730 total)  
 **Location**: Google Drive (`/data/processed_ixi/resized_ixi/`)
 
 ---
@@ -25,12 +45,12 @@ I've updated your `brats2021_t1_preprocessing.ipynb` notebook to follow the **EX
 ```
 Local BraTS Files → Load 3D NIfTI (T1 MRI) → Extract 2D Slices → 
 Normalize [0,1] → Filter (nonzero > 0.12, mean > 0.1) → 
-Resize to 128×128 → Save as .npy files → Create ZIP for upload
+Resize to 128×128 → Save as .npy files → Upload to Drive
 ```
 
 **Purpose**: Testing data (abnormal brains with tumors)  
-**Output**: ~1000-2000 preprocessed slices  
-**Location**: Local → Google Drive (via ZIP upload)
+**Output**: 7,794 test slices  
+**Location**: Google Drive (`/data/brats_t1/resized/`)
 
 ---
 

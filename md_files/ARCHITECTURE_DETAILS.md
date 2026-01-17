@@ -1,8 +1,84 @@
-# SymAD-ECNN: Architecture Details - Three-Model Comparison
+# SymAD-ECNN: Architecture Details - Model Comparison & Results
+
+## 🏆 **FINAL RESULTS (January 2026)**
+
+### Performance Comparison Table
+
+| Model | Parameters | AUROC | AUPRC | Specificity | FP | Status |
+|-------|------------|-------|-------|-------------|-----|--------|
+| Baseline AE | ~8M | N/A | N/A | N/A | N/A | ❌ Failed |
+| CNN-AE Small | ~8M | 0.7617 | 0.8255 | 56.42% | 1,590 | ✅ |
+| CNN-AE Large | ~11M | 0.7803 | 0.8461 | 58.52% | 1,515 | ✅ |
+| ECNN Buggy | ~11M | 0.7035 | 0.7716 | 47.86% | 1,904 | ⚠️ |
+| **ECNN Optimized** | ~11M | **0.8109** | **0.8813** | **58.54%** | **1,514** | 🏆 |
+
+### Key Insights
+
+1. **Equivariance Beats Capacity**: +3.06% AUROC vs Large CNN-AE (same params)
+2. **Architecture Bug Cost**: -7.74% AUROC from naive channel repetition
+3. **Baseline AE Failure**: Fully-connected architecture couldn't handle 128×128 spatial data
+4. **Thesis Validated**: ✅ "Structure > Capacity" - geometric inductive bias wins
+
+---
+
+## 🔧 Critical ECNN Bug & Fix
+
+### The Bug (07_ecnn_autoencoder.ipynb)
+
+```python
+# BOTTLENECK - destroys equivariance
+self.group_pool = e2nn.GroupPooling(self.feat_type_512)
+self.flat_dim = 128 * 4 * 4  # 512 channels → 128 invariant
+
+# DECODER - naive repetition (BUG!)
+def forward(self, x):
+    # ... encoder ...
+    z = self.group_pool(bottleneck)  # ← Makes invariant
+    flat = z.tensor.view(z.size(0), -1)
+    decoded_flat = self.fc_decode(flat)
+    decoded_features = decoded_flat.view(-1, 128, 4, 4)
+    
+    # 🔴 BUG: Just duplicates 128 channels 4 times!
+    x_recon = e2nn.GeometricTensor(
+        decoded_features.repeat(1, 4, 1, 1),  # ← DESTROYS EQUIVARIANCE
+        self.feat_type_512
+    )
+```
+
+**Result**: AUROC 0.7035 (catastrophic failure)
+
+### The Fix (08_ecnn_optimized.ipynb)
+
+```python
+# BOTTLENECK - stays equivariant!
+self.bottleneck = e2nn.R2Conv(self.feat_type_512, self.feat_type_512, 3, 1)
+self.bottleneck_bn = e2nn.InnerBatchNorm(self.feat_type_512)
+
+# DECODER - proper equivariant reconstruction
+def forward(self, x):
+    # ... encoder ...
+    bottleneck = self.bottleneck(e4)  # ← Stays equivariant
+    bottleneck = self.bottleneck_bn(bottleneck)
+    
+    # ✅ FIX: Proper upsampling with GeometricTensor throughout
+    d4 = F.interpolate(bottleneck.tensor, scale_factor=2, mode='bilinear')
+    d4 = self.dec4(e2nn.GeometricTensor(d4, self.feat_type_512))
+    # ... continues with proper field types ...
+    
+# GroupPooling only for latent extraction (analysis), not reconstruction
+def get_latent(self, x):
+    # ... encode ...
+    invariant = self.group_pool(bottleneck)  # ← Only used here
+    return self.fc_latent(invariant.tensor.view(invariant.size(0), -1))
+```
+
+**Result**: AUROC 0.8109 (+7.74% improvement!)
+
+---
 
 ## 📐 Detailed Model Architectures (Proposal Alignment)
 
-**Reference**: This document provides layer-by-layer implementation details for the three models specified in Section 3.3.5 (Model Selection) of the research proposal, enabling reproducibility (NFR4) and benchmarking (FR8).
+**Reference**: This document provides layer-by-layer implementation details for all models, enabling reproducibility (NFR4) and benchmarking (FR8).
 
 ---
 

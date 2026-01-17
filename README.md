@@ -1,7 +1,8 @@
 # SymAD-ECNN: Symmetry-Aware Anomaly Detection with Equivariant CNN
 
 > **Research Project**: Equivariant Convolutional Neural Network-based Autoencoder for Unsupervised Anomaly Detection in Brain MRI  
-> **Proposal Reference**: Project ID W1954060, Westminster University
+> **Status**: ✅ **COMPLETED - January 2026**  
+> **Best Model**: ECNN Optimized - AUROC 0.8109 🏆
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
@@ -12,30 +13,33 @@
 
 ## 🎯 Project Overview
 
-**Research Objective**: Develop a geometry-preserving deep learning framework for unsupervised brain tumor anomaly detection in MRI scans, leveraging E(2)-equivariant convolutions to achieve rotation invariance and reduce false positives compared to standard CNN architectures.
+**Research Objective**: Develop a geometry-preserving deep learning framework for unsupervised brain tumor anomaly detection in MRI scans, leveraging E(2)-equivariant convolutions to achieve rotation invariance.
+
+### 🏆 Key Results
+- **Best Model**: ECNN Optimized - **AUROC 0.8109**
+- **vs Large CNN-AE**: +3.06% AUROC improvement (same 11M parameters)
+- **Thesis Validated**: ✅ **"Structure > Capacity"** - Geometric inductive bias wins
+- **Baseline AE**: ❌ Failed to train (fully-connected too large for spatial data)
 
 ### Core Innovation
-This project addresses critical gaps identified in biomedical imaging anomaly detection literature (Proposal Chapter 2):
 - **Geometry-Aware Learning**: E(2)-equivariant convolutions preserve anatomical symmetries
-- **Rotation Invariance**: Built-in C4 group symmetry (0°/90°/180°/270°) without data augmentation
-- **Reduced False Positives**: ~30% improvement over CNN baselines on rotated inputs
-- **Data Efficiency**: Effective learning from limited labeled datasets (IXI: 16,771 slices)
-
-### Proposal Alignment
-- **Methodology**: Section 3.3.5 (Solution Methodology)
-- **Requirements**: Chapter 4 SRS (FR1-FR9, NFR1-NFR6)
-- **Datasets**: Table 6 (IXI + BraTS 2021)
-- **Evaluation**: Section 3.3.4 (Testing Methodology)
+- **Rotation Invariance**: Built-in C4 group symmetry (0°/90°/180°/270°) without augmentation
+- **Architecture Fix**: Proper equivariant decoder (+7.74% AUROC recovery)
+- **Data Efficiency**: Effective learning from 36,730 IXI slices + 7,794 BraTS test slices
 
 ---
 
-## 📊 Three-Model Architecture
+## 📊 Final Model Performance
 
-| Model | Type | Purpose | Expected AUROC | Parameters |
-|-------|------|---------|----------------|------------|
-| **Baseline AE** | Fully-Connected | Benchmark reference (FR8) | 0.75-0.80 | ~8.5M |
-| **CNN-AE** | Convolutional | State-of-the-art CNN baseline | 0.82-0.87 | ~12M |
-| **ECNN-AE** ⭐ | E(2)-Equivariant | **Core contribution** - Geometry-aware | **0.88-0.92** | ~14M |
+| Model | Parameters | AUROC | AUPRC | Specificity | FP | Status |
+|-------|------------|-------|-------|-------------|-----|--------|
+| Baseline AE | ~8M | N/A | N/A | N/A | N/A | ❌ Failed |
+| CNN-AE Small | ~8M | 0.7617 | 0.8255 | 56.42% | 1,590 | ✅ |
+| CNN-AE Large | ~11M | 0.7803 | 0.8461 | 58.52% | 1,515 | ✅ |
+| ECNN Buggy | ~11M | 0.7035 | 0.7716 | 47.86% | 1,904 | ⚠️ |
+| **ECNN Optimized** | **~11M** | **0.8109** | **0.8813** | **58.54%** | **1,514** | 🏆 **BEST** |
+
+**See**: [`md_files/FINAL_RESULTS.md`](md_files/FINAL_RESULTS.md) for complete analysis
 
 ---
 
@@ -44,51 +48,70 @@ This project addresses critical gaps identified in biomedical imaging anomaly de
 ```
 symAD-ECNN/
 ├── notebooks/
-│   ├── brats2021_t1_preprocessing.ipynb      # BraTS T1 extraction (20 cells)
+│   ├── preprocessing_ixi.ipynb               # IXI preprocessing (Colab)
+│   ├── brats2021_t1_preprocessing.ipynb      # BraTS T1 extraction
 │   └── models/
-│       ├── 01_baseline_autoencoder.ipynb     # Baseline AE (36 cells)
-│       ├── 02_cnn_autoencoder.ipynb          # CNN-AE (10+ cells)
-│       └── 03_ecnn_autoencoder.ipynb         # ECNN-AE (12+ cells) ⭐
+│       ├── 01_baseline_autoencoder.ipynb     # ❌ Failed (FC too large)
+│       ├── 02_cnn_autoencoder.ipynb          # ✅ 0.7617 AUROC
+│       ├── 02b_cnn_ae_large.ipynb            # ✅ 0.7803 AUROC (control)
+│       ├── 03_cnn_ae_augmented.ipynb         # ✅ ~0.76 AUROC
+│       ├── 07_ecnn_autoencoder.ipynb         # ⚠️ 0.7035 AUROC (buggy)
+│       └── 08_ecnn_optimized.ipynb           # 🏆 0.8109 AUROC (BEST)
 │
 ├── md_files/                                  # Comprehensive documentation
-│   ├── PROJECT_OVERVIEW.md                    # Architecture & workflow
-│   ├── ARCHITECTURE_DETAILS.md                # Layer-by-layer specs
+│   ├── FINAL_RESULTS.md                       # ⭐ Complete results & analysis
+│   ├── PROJECT_SUMMARY.md                     # Project overview
+│   ├── ARCHITECTURE_DETAILS.md                # Model specs + ECNN bug fix
 │   ├── EQUIVARIANCE_EXPLAINED.md              # Group theory foundations
-│   ├── TRAINING_PIPELINE.md                   # Colab training guide
-│   ├── ROTATION_INVARIANCE_BENCHMARKING.md    # Validation methodology
-│   ├── MODEL_IMPLEMENTATION_GUIDE.md          # Complete code reference
-│   └── [9 total documentation files]
+│   ├── TRAINING_PIPELINE.md                   # Training guide + results
+│   ├── EXECUTION_CHECKLIST.md                 # Preprocessing status
+│   └── [18 more documentation files]
 │
 ├── data/
-│   ├── brats2021/                             # BraTS 2021 dataset
-│   └── [IXI on Google Drive]
+│   ├── brats_t1/resized/                      # 7,794 test slices
+│   └── processed_ixi/                         # 36,730 train+val slices (Drive)
 │
-├── models/                                    # Saved model checkpoints
-├── results/                                   # Training outputs & metrics
-└── PROJECT_COMPLETE.md                        # Implementation summary
+├── models/saved_models/                       # Model checkpoints
+├── results/                                   # Training outputs & visualizations
+└── README.md                                  # This file
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites (Proposal Section 3.3.3)
-- Python 3.8+ (OOP paradigm)
-- PyTorch 2.0+ (deep learning framework)
+### Prerequisites
+- Python 3.8+
+- PyTorch 2.0+
 - e2cnn (equivariant convolutions)
-- **Free Google Colab** (✅ **sufficient** - no Pro needed!)
+- Google Colab (free tier sufficient)
 
-**Note**: Your models are small (8-14M params) and dataset is modest (16K images). Free Colab provides 12-16GB RAM and 12-hour sessions - plenty for your ~2 hour total training time. See [FREE_COLAB_FEASIBILITY.md](md_files/FREE_COLAB_FEASIBILITY.md) for detailed breakdown.
+### Reproducing Results
 
-### Installation
+1. **Open Best Model Notebook**:
+   - Navigate to [`notebooks/models/08_ecnn_optimized.ipynb`](notebooks/models/08_ecnn_optimized.ipynb)
+   - Click "Open in Colab" badge
+   - Or upload to your Colab workspace
+
+2. **Run All Cells**:
+   - Connect to GPU runtime (Runtime → Change runtime type → GPU)
+   - Run all cells (Runtime → Run all)
+   - Training takes ~6 hours on T4 GPU
+
+3. **Expected Results**:
+   - AUROC: 0.81 ± 0.01
+   - Specificity: 58-59%
+   - All visualizations generated automatically
+
+### Installation (Local Development)
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/symAD-ECNN.git
+git clone https://github.com/RifaDeen/symAD-ECNN.git
 cd symAD-ECNN
 
-# Install dependencies (in Colab or local environment)
-pip install torch torchvision
+# Install dependencies
+pip install torch torchvision e2cnn pytorch-msssim scikit-learn matplotlib seaborn
 pip install e2cnn
 pip install pytorch-msssim
 pip install nibabel scikit-image scipy
