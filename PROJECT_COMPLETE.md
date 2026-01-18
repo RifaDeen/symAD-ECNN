@@ -34,8 +34,9 @@ Your **SymAD-ECNN** (Symmetry-Aware Anomaly Detection with Equivariant CNN) proj
 
 ### 1. **Data Preprocessing Pipeline** ✅ (FR2, Section 3.3.5 - Data Pre-processing)
 - **Files**: 
-  - `notebooks/brats_preprocessing_complete.py` - Complete BraTS pipeline with fixes
-  - `notebooks/ixi_t1_preprocessing.ipynb` - IXI pipeline (Colab with GPU)
+  - `legacy/brats_preprocessing_complete.py` - Complete BraTS pipeline with fixes (moved to legacy/)
+  - `notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb` - IXI pipeline (Colab with GPU)
+  - `notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb` - BraTS preprocessing notebook
 - **Purpose**: Extract T1 slices from BraTS 2021 and IXI datasets
 - **Methodology**: Preserves anatomical geometries with RAS standardization
 - **Key Features**:
@@ -67,7 +68,7 @@ Your **SymAD-ECNN** (Symmetry-Aware Anomaly Detection with Equivariant CNN) proj
 - **Status**: **Complete and ready to run** - Implements standard CNN operations
 
 #### **Notebook 3: E(2)-Equivariant CNN-Autoencoder** ⭐ (CORE RESEARCH CONTRIBUTION)
-- **File**: `notebooks/models/03_ecnn_autoencoder.ipynb`
+- **File**: `notebooks/models/07_ecnn_autoencoder.ipynb` and `08_ecnn_optimized.ipynb` (evolved versions)
 - **Architecture**: E(2)-equivariant CNN with C4 group symmetry (0°/90°/180°/270° rotations)
 - **Library**: `e2cnn` (Section 3.3.3 - Python with geometric deep learning libraries)
 - **Innovation**: Addresses literature review gaps (Table 11 - geometry-aware architectures)

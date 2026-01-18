@@ -297,14 +297,14 @@ Model                  | Type          | AUROC  | Spec   | FP    | Training
 ResNet Mahalanobis 🏆  | Distance      | 0.9240 | 72.84% |   991 | 0 min
 ResNet KNN             | Distance      | 0.8940 | 68.27% | 1,158 | 0 min
 ResNet-AE              | Reconstruction| 0.8748 | 65.23% | 1,270 | 20 min
-ECNN Optimized         | Reconstruction| 0.8109 | 58.54% | 1,514 | 300 min
-Large CNN-AE           | Reconstruction| 0.7803 | 58.52% | 1,515 | 300 min
+ECNN Optimized         | Reconstruction| 0.8109 | 58.54% | 1,514 | 165 min
+Large CNN-AE           | Reconstruction| 0.7803 | 58.52% | 1,515 | 74 min
 Small CNN-AE           | Reconstruction| 0.7617 | 56.42% | 1,590 | 240 min
 ```
 
 **Key Findings**:
 1. **Distance methods beat reconstruction** (+1.31% AUROC vs best reconstruction)
-2. **No training required** (0 min vs 240-300 min)
+2. **No training required** (0 min vs 74-240 min)
 3. **Best specificity** (72.84% vs 58-66% for reconstruction)
 4. **Fewer false positives** (991 vs 1,270-1,590)
 
@@ -443,7 +443,7 @@ Training set (33,078 images):  5.2 minutes
 Validation set (3,652 images): 0.6 minutes
 Test set (7,794 images):       1.4 minutes
 
-Total: ~7.2 minutes (vs 240-300 min for training reconstruction models)
+Total: ~7.2 minutes (vs 74-240 min for training reconstruction models)
 ```
 
 ### Inference Time (per image)

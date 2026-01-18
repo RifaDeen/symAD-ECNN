@@ -149,7 +149,7 @@ Jitter:    ±10% brightness/contrast
 
 ### Training Dynamics
 - **Convergence**: Slower than baseline (epoch 48 vs 32)
-- **Training Time**: ~6 hours (vs 4 hours baseline, +50% overhead from augmentation)
+- **Training Time**: ~3.5 hours (vs 2.7 hours baseline, +30% overhead from augmentation)
 - **Memory Usage**: 3.4 GB VRAM (slightly higher due to augmentation transforms)
 - **Instability**: Loss fluctuates more than baseline (augmentation adds noise)
 

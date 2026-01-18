@@ -42,19 +42,19 @@ resized = resize(
 ## 📋 Updated Files
 
 ### 1. ✅ BraTS Preprocessing Script
-**File**: [`notebooks/brats_preprocessing_complete.py`](../notebooks/brats_preprocessing_complete.py)
+**File**: [`notebooks/brats_preprocessing_complete.py`](../legacy/brats_preprocessing_complete.py) (now in legacy/)
 - Added RAS orientation correction
 - Updated resize with `order=3`
 - Added detailed comments
 
 ### 2. ✅ IXI Preprocessing Notebook  
-**File**: [`notebooks/ixi_t1_preprocessing.ipynb`](../notebooks/ixi_t1_preprocessing.ipynb)
+**File**: [`notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb`](../notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb)
 - Already had RAS orientation ✅
 - Already had `order=3` ✅
 - No changes needed
 
 ### 3. ✅ Cleanup Script
-**File**: [`cleanup_and_prep_reprocessing.ps1`](../cleanup_and_prep_reprocessing.ps1)
+**File**: [`cleanup_and_prep_reprocessing.ps1`](../legacy/cleanup_and_prep_reprocessing.ps1) (now in legacy/)
 - Backs up old local BraTS data
 - Provides Colab cleanup commands
 - Ready to run
@@ -77,14 +77,14 @@ resized = resize(
 
 2. **BraTS** (~60-70 min):
    ```powershell
-   python notebooks/brats_preprocessing_complete.py
+   python legacy/brats_preprocessing_complete.py
    ```
 
 3. **Upload** (~5-10 min):
    - Upload ZIP to Drive: `MyDrive/symAD-ECNN/data/`
 
 4. **IXI** (~3-5 hours, can run parallel):
-   - Open `notebooks/ixi_t1_preprocessing.ipynb` in Colab
+   - Open `notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb` in Colab
    - Enable GPU
    - Run all cells
 

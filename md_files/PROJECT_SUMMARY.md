@@ -246,11 +246,11 @@ Everything is set up! You can now:
 
 | File | Purpose |
 |------|---------|
-| `notebooks/brats2021_t1_preprocessing.ipynb` | Main preprocessing notebook |
+| `notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb` | Main preprocessing notebook |
 | `BRATS_PREPROCESSING_GUIDE.md` | Detailed guide |
 | `IXI_vs_BRATS_COMPARISON.md` | Pipeline comparison |
 | `QUICKSTART.md` | Quick reference |
-| `notebooks/preprocessing_ixi.ipynb` | Original IXI pipeline (reference) |
+| `legacy/preprocessing_ixi.ipynb` | Original IXI pipeline (moved to legacy/) |
 
 ---
 

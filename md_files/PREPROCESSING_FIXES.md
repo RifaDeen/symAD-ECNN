@@ -53,7 +53,7 @@ resized = resize(
 ## 📝 Files Updated
 
 ### 1. BraTS Preprocessing Script
-**File**: `notebooks/brats_preprocessing_complete.py`  
+**File**: `legacy/brats_preprocessing_complete.py` (moved to legacy/)  
 **Section 11**: Resize function updated with `order=3`
 
 ```python
@@ -65,7 +65,7 @@ resized = resize(arr, (128, 128), order=3, mode='reflect', anti_aliasing=True, p
 ```
 
 ### 2. IXI Preprocessing Notebook
-**File**: `notebooks/ixi_t1_preprocessing.ipynb`  
+**File**: `notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb`  
 **Status**: ✅ Already correct (updated earlier)  
 **Lines**: 365-385
 
@@ -81,7 +81,7 @@ slice_resized = resize(
 ```
 
 ### 3. BraTS Test Cell
-**File**: `notebooks/brats2021_t1_preprocessing.ipynb`  
+**File**: `notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb`  
 **Cell**: Last test cell (visual comparison)  
 **Purpose**: Compare linear vs bicubic vs no-AA
 
@@ -202,9 +202,9 @@ The test cell in BraTS notebook shows 3 methods side-by-side:
 
 ## 🔗 Related Files
 
-- `notebooks/brats_preprocessing_complete.py` - Complete BraTS pipeline
-- `notebooks/ixi_t1_preprocessing.ipynb` - IXI pipeline (Colab)
-- `notebooks/brats2021_t1_preprocessing.ipynb` - BraTS notebook with test cell
+- `legacy/brats_preprocessing_complete.py` - Complete BraTS pipeline (moved to legacy/)
+- `notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb` - IXI pipeline (Colab)
+- `notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb` - BraTS notebook with test cell
 - `cleanup_and_prep_reprocessing.ps1` - Backup old data
 - `md_files/ORIENTATION_FIX_SUMMARY.md` - RAS orientation fix
 - `md_files/PREPROCESSING_FIXES.md` - This file

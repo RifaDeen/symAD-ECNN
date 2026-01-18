@@ -391,7 +391,7 @@ Mixed:     FP16 + GradScaler
 
 ### Training Dynamics
 - **Convergence**: Epoch 48 (slower than CNN-AE Large at epoch 45)
-- **Training Time**: ~6 hours (slower due to e2cnn overhead)
+- **Training Time**: ~2.7 hours for 40 epochs (~251.1s per epoch)
 - **Memory Usage**: 5.8 GB VRAM (higher due to GeometricTensor overhead)
 - **Stability**: Training loss plateaus early → bug prevents learning
 

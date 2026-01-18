@@ -127,7 +127,7 @@ Your IXI data is currently all in one folder. You need to split it into train/va
 
 If you prefer a script:
 ```python
-# See: notebooks/ixi_train_val_split.py
+# See: legacy/ixi_train_val_split.py
 # Upload to Colab and run
 ```
 

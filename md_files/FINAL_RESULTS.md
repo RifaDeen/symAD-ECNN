@@ -196,7 +196,7 @@ SEED = 42 (torch, numpy, random)
 ### Training Times
 - CNN-AE Small: ~4 hours (40 epochs to convergence)
 - CNN-AE Large: ~5 hours (45 epochs to convergence)
-- ECNN Optimized: ~6 hours (40 epochs to convergence)
+- ECNN Optimized: ~2.7 hours (40 epochs × 251.1s per epoch)
 
 ---
 

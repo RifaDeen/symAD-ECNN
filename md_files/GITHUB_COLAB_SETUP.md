@@ -215,7 +215,7 @@ Repository: yourusername/symAD-ECNN
 Branch: main
 
 Notebooks shown:
-- notebooks/brats2021_t1_preprocessing.ipynb
+- notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb
 - notebooks/models/01_baseline_autoencoder.ipynb
 - notebooks/models/02_cnn_autoencoder.ipynb
 - notebooks/models/03_ecnn_autoencoder.ipynb

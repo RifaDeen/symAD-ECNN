@@ -10,8 +10,8 @@
 | CNN-AE Small | ~8M | ~4 hours | 0.7617 | 56.42% | ✅ Completed |
 | CNN-AE Large | ~11M | ~5 hours | 0.7803 | 58.52% | ✅ Completed |
 | CNN-AE Augmented | ~8M | ~5 hours | ~0.76 | ~56% | ✅ Completed |
-| ECNN Buggy | ~11M | ~6 hours | 0.7035 | 47.86% | ⚠️ Architecture bug |
-| **ECNN Optimized** | **~11M** | **~6 hours** | **0.8109** | **58.54%** | 🏆 **BEST** |
+| ECNN Buggy | ~11M | ~2.7 hours | 0.7035 | 47.86% | ⚠️ Architecture bug |
+| **ECNN Optimized** | **~11M** | **~2.7 hours** | **0.8109** | **58.54%** | 🏆 **BEST** |
 
 ### 🏆 Key Achievements
 
@@ -30,7 +30,7 @@ This guide provides a complete step-by-step walkthrough for training all models 
 - Setup: 30 minutes
 - CNN-AE Small: 4 hours
 - CNN-AE Large: 5 hours
-- ECNN Optimized: 6 hours
+- ECNN Optimized: 2.7 hours (40 epochs × 251.1s)
 - **Total**: ~2 days
 
 **Hardware**: Google Colab GPU (T4 recommended, V100/A100 better)

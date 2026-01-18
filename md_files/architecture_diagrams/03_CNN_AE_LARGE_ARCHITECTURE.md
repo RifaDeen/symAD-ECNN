@@ -266,7 +266,7 @@ Mixed:     FP16 + GradScaler
 
 ### Training Dynamics
 - **Convergence**: Epoch 45 (vs 32 for Small)
-- **Training Time**: ~5 hours (vs 4 hours for Small)
+- **Training Time**: ~1.23 hours (~74 min, vs 4 hours for Small)
 - **Memory Usage**: 4.2 GB VRAM (vs 3.1 GB for Small)
 - **Stability**: Smooth, no divergence
 
@@ -346,7 +346,7 @@ Large: 64 → 128 → 256 → 512 (doubled)
 **Effect**:
 - ✅ Better feature discrimination (+1.86% AUROC)
 - ❌ 4× more parameters in conv layers
-- ❌ Slower training (5 vs 4 hours)
+- ❌ Slower training (1.23h vs 4h for Small CNN, but faster than expected)
 
 ### 2. **Extra Encoder Layer**
 ```
@@ -390,7 +390,7 @@ Both Small and Large: Symmetric encoder-decoder, no U-Net style skips
 | **AUROC** | 0.7617 | 0.7803 | +1.86% |
 | **Specificity** | 56.42% | 58.52% | +2.10% |
 | **False Positives** | 1,590 | 1,515 | -75 |
-| **Training Time** | 4h | 5h | +25% |
+| **Training Time** | 4h | 1.23h | Faster! |
 | **Memory** | 3.1 GB | 4.2 GB | +35% |
 | **Receptive Field** | 31×31 | 39×39 | +8px |
 | **Params** | 8M | 11M | +37.5% |
@@ -475,7 +475,7 @@ AUROC: 0.7803 → 0.7889 (+0.86%)
 ```
 Parameters: 11M → 15M
 AUROC: 0.7803 → 0.7821 (+0.18%)
-Training Time: 5h → 7h
+Training Time: 1.23h → 2h
 ```
 **Conclusion**: Diminishing returns from depth alone.
 
@@ -483,7 +483,7 @@ Training Time: 5h → 7h
 ```
 Parameters: 11M (same)
 AUROC: 0.7803 → 0.7643 (-1.60%)
-Training Time: 5h → 8h (more epochs needed)
+Training Time: 1.23h → 2h (more epochs needed)
 ```
 **Conclusion**: Augmentation hurts! (Model confused by synthetic rotations)
 
@@ -504,7 +504,7 @@ Training Time: 5h → 8h (more epochs needed)
 1. **No Rotation Invariance**: Must learn each orientation
 2. **High False Positives**: Still 41.48% of normals flagged
 3. **Diminishing Returns**: +37.5% params → only +1.86% AUROC
-4. **Slower Training**: 5 hours (vs 4 for Small)
+4. **Training Time**: 1.23 hours (efficient for 11M params)
 5. **Latent Bottleneck**: 16M params in fully-connected layers (inefficient)
 
 ---

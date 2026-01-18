@@ -285,13 +285,13 @@ Model                  | AUROC  | Δ vs ResNet-AE | Training Time
 ResNet Mahalanobis 🏆  | 0.9240 | +4.92%        | 0 min
 ResNet KNN             | 0.8940 | +1.92%        | 0 min
 ResNet-AE (This) ✅    | 0.8748 | -             | 20 min
-ECNN Optimized         | 0.8109 | -6.39%        | 300 min
-Large CNN-AE           | 0.7803 | -9.45%        | 300 min
+ECNN Optimized         | 0.8109 | -6.39%        | 165 min
+Large CNN-AE           | 0.7803 | -9.45%        | 165 min
 Small CNN-AE           | 0.7617 | -11.31%       | 240 min
 ResNet Fine-tuned      | 0.7398 | -13.50%       | 50 min
 ```
 
-**Key Finding**: ResNet-AE beats ECNN Optimized (+6.39%) with **15× faster training** (20 min vs 300 min)!
+**Key Finding**: ResNet-AE beats ECNN Optimized (+6.39%) with **8× faster training** (20 min vs 165 min)!
 
 ---
 
@@ -382,7 +382,7 @@ Full Fine-tune:      0.7102 AUROC ❌ (-16.46%)
 Epoch time: ~40 seconds
 Total (30 epochs): ~20 minutes
 
-vs ECNN Optimized: ~300 minutes (15× slower)
+vs ECNN Optimized: ~165 minutes (8× slower)
 vs Small CNN-AE:   ~240 minutes (12× slower)
 ```
 
@@ -436,7 +436,7 @@ vs CNN-AE: ~12 ms per image (0.8× slower)
 | **AUPRC** | 0.8234 | **0.8956** | ResNet-AE (+7.22%) |
 | **Specificity** | 58.54% | **65.23%** | ResNet-AE (+6.69%) |
 | **FP** | 1,514 | **1,270** | ResNet-AE (-244) |
-| **Training Time** | 300 min | **20 min** | ResNet-AE (15× faster) |
+| **Training Time** | 165 min | **20 min** | ResNet-AE (8× faster) |
 | **Parameters** | 1.8M | 11.2M | ECNN (smaller) |
 | **Trainable** | 1.8M | **100K** | ResNet-AE (18× fewer) |
 | **Rotation Invariance** | ✅ Yes | ❌ No | ECNN |

@@ -281,7 +281,7 @@ Heavy (all 4):       0.7072 AUROC (-7.16%) ← Used
 - **+11.31% vs ECNN Optimized** (0.8109)
 - **Fewest false positives**: 991 vs 1,270-1,904
 - **Best specificity**: 72.84% vs 58-66%
-- No training required (0 min vs 20-300 min)
+- No training required (0 min vs 20-165 min)
 
 **Why It Works**:
 - ImageNet transfer learning provides robust general features
@@ -314,7 +314,7 @@ Heavy (all 4):       0.7072 AUROC (-7.16%) ← Used
 **Key Findings**:
 - **+6.39% AUROC vs ECNN Optimized** (0.8748 vs 0.8109)
 - **+9.45% AUROC vs Large CNN-AE** (from-scratch)
-- **15× faster training** (20 min vs 300 min for ECNN)
+- **8× faster training** (20 min vs 165 min for ECNN)
 - **Lower overfitting** (only 100K params trained)
 - **Frozen > fine-tuned** (next model shows fine-tuning hurts)
 
@@ -329,7 +329,7 @@ Heavy (all 4):       0.7072 AUROC (-7.16%) ← Used
 Model           | AUROC  | Training | Trainable | Rot. Inv.
 ----------------|--------|----------|-----------|----------
 ResNet-AE       | 0.8748 | 20 min   | 100K      | ❌ No
-ECNN Optimized  | 0.8109 | 300 min  | 11M       | ✅ Yes
+ECNN Optimized  | 0.8109 | 165 min  | 11M       | ✅ Yes
 ```
 **Trade-off**: Performance (+6.39%) vs Rotation Invariance.
 
@@ -389,12 +389,12 @@ All layers       | 0.7102 | 11.2M ❌
 | **ResNet Mahalanobis** 🥇 | Distance | ~11M | 0 min | **0.9240** | **72.84%** | **991** | ✅ | Transfer + distance = BEST |
 | **ResNet KNN** 🥈 | Distance | ~11M | 0 min | **0.8940** | 68.27% | 1,158 | ✅ | Zero training, excellent |
 | **ResNet-AE** 🥉 | Transfer+Recon | ~11M | 20 min | **0.8748** | 65.23% | 1,270 | ✅ | Frozen encoder wins |
-| **ECNN Optimized** ⭐ | Equivariant | ~11M | 300 min | **0.8109** | 58.54% | 1,514 | ✅ | Best from-scratch |
-| Large CNN-AE | Standard CNN | ~11M | 300 min | 0.7803 | 58.52% | 1,515 | ✅ | Control (capacity) |
+| **ECNN Optimized** ⭐ | Equivariant | ~11M | 165 min | **0.8109** | 58.54% | 1,514 | ✅ | Best from-scratch |
+| Large CNN-AE | Standard CNN | ~11M | 74 min | 0.7803 | 58.52% | 1,515 | ✅ | Control (capacity) |
 | Small CNN-AE | Standard CNN | ~8M | 240 min | 0.7617 | 56.42% | 1,590 | ✅ | CNN baseline |
 | ResNet Fine-tuned | Transfer+Recon | ~11M | 50 min | 0.7398 | 58.94% | 1,498 | ❌ | Fine-tuning hurts |
 | CNN-AE Augmented | Standard CNN | ~8M | 240 min | 0.7072 | 53.97% | 1,681 | ❌ | Augmentation hurts |
-| ECNN Buggy | Equivariant | ~11M | 300 min | 0.7035 | 47.86% | 1,904 | ❌ | Channel repeat bug |
+| ECNN Buggy | Equivariant | ~11M | 165 min | 0.7035 | 47.86% | 1,904 | ❌ | Channel repeat bug |
 | Baseline FC-AE | Fully-Conn | ~17M | - | Failed | - | - | ❌ | OOM (too large) |
 
 **Key Insights (All 9 Models)**:
@@ -463,7 +463,7 @@ Equivariance adds **1.6× more value** than 37.5% parameter increase.
 **Recommendation hierarchy**:
 - **Best overall**: ResNet Feature Distance (0.9240, zero training, but no pixel localization)
 - **Best reconstruction**: ResNet-AE frozen (0.8748, 20 min training, pixel heatmaps)
-- **Best from-scratch**: ECNN Optimized (0.8109, 300 min training, rotation invariant)
+- **Best from-scratch**: ECNN Optimized (0.8109, 165 min training, rotation invariant)
 - **Avoid**: Data augmentation, fine-tuning on small datasets"
 
 ---
@@ -486,12 +486,12 @@ Training Time (min)    AUROC
 **Pareto Frontier** (optimal trade-offs):
 - **0 min**: ResNet Mahalanobis (0.9240) - zero training, best performance
 - **20 min**: ResNet-AE (0.8748) - fast training, pixel localization
-- **300 min**: ECNN Optimized (0.8109) - from-scratch, rotation invariant
+- **165 min**: ECNN Optimized (0.8109) - from-scratch, rotation invariant
 
 **Dominated** (strictly worse):
 - ResNet Fine-tuned: Longer training (50 min) AND worse (0.7398) than ResNet-AE (20 min, 0.8748)
 - CNN-AE Augmented: Same training (240 min) AND worse (0.7072) than Small CNN-AE (240 min, 0.7617)
-- ECNN Buggy: Same training (300 min) AND worse (0.7035) than all models
+- ECNN Buggy: Same training (165 min) AND worse (0.7035) than all models
 
 ---
 

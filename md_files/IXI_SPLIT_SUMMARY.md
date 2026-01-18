@@ -4,7 +4,7 @@
 
 I've added a **complete train/val split section** (Step 8) to your existing IXI preprocessing notebook:
 
-**File**: `notebooks/preprocessing_ixi.ipynb`
+**File**: `legacy/preprocessing_ixi.ipynb` (moved to legacy/)
 
 ## New Cells Added (14 cells total)
 

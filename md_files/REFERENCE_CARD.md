@@ -224,7 +224,7 @@ Copy cell 19 code to Colab and run
 
 ## 🔗 Quick Links
 
-- **Main Notebook**: `notebooks/brats2021_t1_preprocessing.ipynb`
+- **Main Notebook**: `notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb`
 - **Detailed Guide**: `BRATS_PREPROCESSING_GUIDE.md`
 - **Quick Start**: `QUICKSTART.md`
 - **Comparison**: `IXI_vs_BRATS_COMPARISON.md`

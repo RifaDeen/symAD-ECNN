@@ -4,7 +4,7 @@
 
 ### What You Have:
 - ✅ BraTS 2021 dataset downloaded at: `c:\Users\rifad\symAD-ECNN\data\brats2021`
-- ✅ Preprocessing notebook: `notebooks/brats2021_t1_preprocessing.ipynb`
+- ✅ Preprocessing notebook: `notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb`
 
 ### What You'll Get:
 - 📦 Processed BraTS slices (128×128, normalized, .npy format)
@@ -17,7 +17,7 @@
 
 ### 1️⃣ Open Notebook
 ```
-Open: notebooks/brats2021_t1_preprocessing.ipynb
+Open: notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb
 ```
 
 ### 2️⃣ Run All Cells in Order

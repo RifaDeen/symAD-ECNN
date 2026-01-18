@@ -121,7 +121,7 @@ pip install nibabel scikit-image scipy
 
 #### 1. Preprocess BraTS Data (Local)
 ```bash
-# Open notebooks/brats2021_t1_preprocessing.ipynb
+# Open notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb
 # Run all cells to extract T1 slices
 # Output: ~1000-2000 .npy files + ZIP for upload
 ```

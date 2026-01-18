@@ -378,8 +378,8 @@ Gradient:  Clipping at max_norm=1.0 (stability)
 ```
 
 ### Training Dynamics
-- **Convergence**: Epoch 42 (between Small CNN at 32 and Buggy at 48)
-- **Training Time**: ~5 hours (same as Large CNN-AE)
+- **Convergence**: Epoch 40 (optimized training)
+- **Training Time**: Nearly 2.7 hours for 40 epochs (~251.1s per epoch)
 - **Memory Usage**: 5.2 GB VRAM (vs 4.2 GB Large CNN-AE, +24% due to e2cnn overhead)
 - **Stability**: Smooth convergence, no NaN issues with gradient clipping
 

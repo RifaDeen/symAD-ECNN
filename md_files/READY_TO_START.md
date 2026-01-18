@@ -9,12 +9,12 @@ All files and scripts are ready for fresh preprocessing with corrected settings.
 ## 📁 Files Created/Updated
 
 ### 1. Scripts Ready to Run
-- ✅ [`cleanup_and_prep_reprocessing.ps1`](../cleanup_and_prep_reprocessing.ps1) - Backup old data
-- ✅ [`notebooks/brats_preprocessing_complete.py`](../notebooks/brats_preprocessing_complete.py) - Complete BraTS pipeline with fixes
+- ✅ [`cleanup_and_prep_reprocessing.ps1`](../legacy/cleanup_and_prep_reprocessing.ps1) - Backup old data (moved to legacy/)
+- ✅ [`notebooks/brats_preprocessing_complete.py`](../legacy/brats_preprocessing_complete.py) - Complete BraTS pipeline with fixes (moved to legacy/)
 
 ### 2. Notebooks Verified
-- ✅ [`notebooks/ixi_t1_preprocessing.ipynb`](../notebooks/ixi_t1_preprocessing.ipynb) - IXI pipeline (already correct)
-- ✅ [`notebooks/brats2021_t1_preprocessing.ipynb`](../notebooks/brats2021_t1_preprocessing.ipynb) - Test cell for interpolation comparison
+- ✅ [`notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb`](../notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb) - IXI pipeline (already correct)
+- ✅ [`notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb`](../notebooks/data_preprocessing/brats2021_t1_preprocessing.ipynb) - Test cell for interpolation comparison
 
 ### 3. Documentation Created
 - ✅ [`md_files/PREPROCESSING_SUMMARY.md`](PREPROCESSING_SUMMARY.md) - Quick overview
@@ -75,7 +75,7 @@ powershell -ExecutionPolicy Bypass -File cleanup_and_prep_reprocessing.ps1
 
 **Step 2 - BraTS** (60-70 min):
 ```powershell
-python notebooks/brats_preprocessing_complete.py
+python legacy/brats_preprocessing_complete.py
 ```
 
 **Step 3 - Upload**:
@@ -83,7 +83,7 @@ python notebooks/brats_preprocessing_complete.py
 - To: `MyDrive/symAD-ECNN/data/`
 
 **Step 4 - IXI** (3-5 hours in Colab):
-- Open: `notebooks/ixi_t1_preprocessing.ipynb`
+- Open: `notebooks/data_preprocessing/ixi_t1_preprocessing.ipynb`
 - Enable: GPU (T4)
 - Run: All cells
 
