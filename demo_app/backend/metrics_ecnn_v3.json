@@ -1,0 +1,23 @@
+{
+    "model": "ECNN-Optimized-V3-11M",
+    "auroc": 0.8109309657975452,
+    "auprc": 0.8813394267794503,
+    "accuracy": 0.8005416739472305,
+    "precision": 0.8226958660264668,
+    "recall": 0.901334359763921,
+    "specificity": 0.5854326396495071,
+    "f1_score": 0.8602216371762689,
+    "optimal_threshold": 0.002618970815092325,
+    "best_epoch": 40,
+    "best_val_loss": 0.020372764833656878,
+    "confusion_matrix": {
+        "TP": 7025,
+        "TN": 2138,
+        "FP": 1514,
+        "FN": 769
+    },
+    "training_time_hours": 0.0,
+    "total_params": 10460993,
+    "anomaly_error_mean": 0.00501307612285018,
+    "normal_error_mean": 0.0028592257294803858
+}

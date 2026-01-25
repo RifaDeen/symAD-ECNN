@@ -1,0 +1,23 @@
+# Web Framework (Fixes the 'use_container_width' error)
+streamlit>=1.31.0
+
+# Deep Learning (Compatible with Python 3.8)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# E(2)-Equivariant CNNs (Your core model)
+e2cnn>=0.2.3
+
+# Medical Imaging (For NIfTI loading)
+nibabel>=5.0.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# Visualization
+matplotlib>=3.7.0
+plotly>=5.18.0
+
+# Scientific Computing
+numpy>=1.24.0
+scipy>=1.10.0
