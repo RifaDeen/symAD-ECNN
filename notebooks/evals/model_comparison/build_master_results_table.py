@@ -83,6 +83,7 @@ def extract_metrics_from_result(result: Dict) -> Dict[str, Optional[float]]:
     """
     metrics = {
         "auroc": None,
+        "auprc": None,
         "accuracy": None,
         "precision": None,
         "recall": None,
@@ -94,6 +95,7 @@ def extract_metrics_from_result(result: Dict) -> Dict[str, Optional[float]]:
     # Define aliases for each metric
     metric_aliases = {
         "auroc": ["auroc", "auc_roc", "roc_auc", "auc", "AUROC"],
+        "auprc": ["auprc", "auc_pr", "pr_auc", "AUPRC"],
         "accuracy": ["accuracy", "acc", "Accuracy"],
         "precision": ["precision", "prec", "Precision", "ppv"],
         "recall": ["recall", "sensitivity", "sens", "tpr", "Recall", "Sensitivity"],
@@ -202,7 +204,7 @@ def generate_chapter8_table(df: pd.DataFrame) -> pd.DataFrame:
     """
     # Select columns for publication
     columns = [
-        "model_name", "auroc", "accuracy", "precision", 
+        "model_name", "auroc", "auprc", "accuracy", "precision", 
         "recall", "specificity", "f1_score"
     ]
     
@@ -218,6 +220,7 @@ def generate_chapter8_table(df: pd.DataFrame) -> pd.DataFrame:
     column_names = {
         "model_name": "Model",
         "auroc": "AUROC",
+        "auprc": "AUPRC",
         "accuracy": "Accuracy",
         "precision": "Precision",
         "recall": "Recall",
@@ -241,7 +244,7 @@ def generate_ranked_tables(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
     """
     ranked_tables = {}
     
-    metrics_to_rank = ["auroc", "accuracy", "recall", "specificity", "f1_score"]
+    metrics_to_rank = ["auroc", "auprc", "accuracy", "recall", "specificity", "f1_score"]
     
     for metric in metrics_to_rank:
         if metric in df.columns and df[metric].notna().any():
