@@ -185,6 +185,136 @@ class ECNNAutoencoder(nn.Module):
         return error
 
 
+class ECNNAutoencoderV3(nn.Module):
+    """
+    ECNN architecture matching the optimized checkpoint used in the app/backend.
+
+    This mirrors the structure with:
+    - C4 symmetry
+    - group pooling bottleneck
+    - fc_encode / fc_decode latent layers
+    - up1/up2/up3 decoder blocks + final_conv
+    """
+
+    def __init__(self, latent_dim: int = 1024):
+        super().__init__()
+
+        if not E2CNN_AVAILABLE:
+            raise ImportError("e2cnn is required for ECNNAutoencoderV3")
+
+        self.r2_act = gspaces.Rot2dOnR2(N=4)
+        self.in_type = e2nn.FieldType(self.r2_act, [self.r2_act.trivial_repr])
+
+        self.type_128 = e2nn.FieldType(self.r2_act, 32 * [self.r2_act.regular_repr])
+        self.type_256 = e2nn.FieldType(self.r2_act, 64 * [self.r2_act.regular_repr])
+        self.type_512 = e2nn.FieldType(self.r2_act, 128 * [self.r2_act.regular_repr])
+        self.type_1024 = e2nn.FieldType(self.r2_act, 256 * [self.r2_act.regular_repr])
+
+        self.encoder = nn.Sequential(
+            e2nn.R2Conv(self.in_type, self.type_128, kernel_size=7, padding=3, stride=2),
+            e2nn.InnerBatchNorm(self.type_128),
+            e2nn.ReLU(self.type_128),
+
+            e2nn.R2Conv(self.type_128, self.type_256, kernel_size=3, padding=1, stride=2),
+            e2nn.InnerBatchNorm(self.type_256),
+            e2nn.ReLU(self.type_256),
+
+            e2nn.R2Conv(self.type_256, self.type_512, kernel_size=3, padding=1, stride=2),
+            e2nn.InnerBatchNorm(self.type_512),
+            e2nn.ReLU(self.type_512),
+
+            e2nn.R2Conv(self.type_512, self.type_1024, kernel_size=3, padding=1, stride=2),
+            e2nn.InnerBatchNorm(self.type_1024),
+            e2nn.ReLU(self.type_1024),
+
+            e2nn.PointwiseMaxPool(self.type_1024, kernel_size=2, stride=2),
+        )
+
+        self.group_pool = e2nn.GroupPooling(self.type_1024)
+        self.flat_dim = 256 * 4 * 4
+        self.fc_encode = nn.Linear(self.flat_dim, latent_dim)
+        self.fc_decode = nn.Linear(latent_dim, self.flat_dim)
+
+        self.up1 = self._up_block(self.type_1024, self.type_512)
+        self.up2 = self._up_block(self.type_512, self.type_256)
+        self.up3 = self._up_block(self.type_256, self.type_128)
+        self.final_conv = e2nn.R2Conv(self.type_128, self.in_type, kernel_size=3, padding=1)
+        self.sigmoid = nn.Sigmoid()
+
+    def _up_block(self, in_type, out_type):
+        return nn.Sequential(
+            e2nn.R2Conv(in_type, out_type, kernel_size=3, padding=1),
+            e2nn.InnerBatchNorm(out_type),
+            e2nn.ReLU(out_type),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x_geo = e2nn.GeometricTensor(x, self.in_type)
+
+        features = self.encoder(x_geo)
+        invariant = self.group_pool(features)
+
+        b = invariant.tensor.size(0)
+        flat = invariant.tensor.view(b, -1)
+
+        z = self.fc_encode(flat)
+        z_expand = self.fc_decode(z)
+
+        z_view = z_expand.view(-1, 256, 4, 4)
+        x_recon = e2nn.GeometricTensor(z_view.repeat(1, 4, 1, 1), self.type_1024)
+
+        x_recon = nn.functional.interpolate(x_recon.tensor, scale_factor=2, mode="bilinear")
+        x_recon = e2nn.GeometricTensor(x_recon, self.type_1024)
+
+        x_recon = nn.functional.interpolate(x_recon.tensor, scale_factor=2, mode="bilinear")
+        x_recon = self.up1(e2nn.GeometricTensor(x_recon, self.type_1024))
+
+        x_recon = nn.functional.interpolate(x_recon.tensor, scale_factor=2, mode="bilinear")
+        x_recon = self.up2(e2nn.GeometricTensor(x_recon, self.type_512))
+
+        x_recon = nn.functional.interpolate(x_recon.tensor, scale_factor=2, mode="bilinear")
+        x_recon = self.up3(e2nn.GeometricTensor(x_recon, self.type_256))
+
+        x_recon = nn.functional.interpolate(x_recon.tensor, scale_factor=2, mode="bilinear")
+        x_recon = self.final_conv(e2nn.GeometricTensor(x_recon, self.type_128))
+
+        return self.sigmoid(x_recon.tensor)
+
+    def compute_reconstruction_error(self, x: torch.Tensor, mode: str = "abs") -> torch.Tensor:
+        recon = self.forward(x)
+
+        if mode == "abs":
+            return torch.abs(x - recon)
+        if mode == "squared":
+            return (x - recon) ** 2
+        raise ValueError(f"Unknown error mode: {mode}")
+
+
+def _extract_state_dict(checkpoint) -> Dict[str, torch.Tensor]:
+    """Extract state dict from either checkpoint dict or raw state dict."""
+    if isinstance(checkpoint, dict):
+        if "model_state_dict" in checkpoint and isinstance(checkpoint["model_state_dict"], dict):
+            return checkpoint["model_state_dict"]
+        if "state_dict" in checkpoint and isinstance(checkpoint["state_dict"], dict):
+            return checkpoint["state_dict"]
+    return checkpoint
+
+
+def _is_v3_equivariant_state_dict(state_dict: Dict[str, torch.Tensor]) -> bool:
+    """Heuristic detection for ECNNAutoencoderV3 checkpoints."""
+    if not isinstance(state_dict, dict):
+        return False
+    keys = state_dict.keys()
+    required_markers = ["fc_encode.weight", "fc_decode.weight", "group_pool"]
+    return (
+        "fc_encode.weight" in keys
+        and "fc_decode.weight" in keys
+        and any(k.startswith("group_pool") for k in keys)
+        and any(k.startswith("up1") for k in keys)
+        and any(k.startswith("final_conv") for k in keys)
+    )
+
+
 # =============================================================================
 # SIMPLIFIED ECNN FOR FALLBACK
 # =============================================================================
@@ -308,9 +438,26 @@ def load_ecnn_model(
     base_channels = config.get("base_channels", 32)
     latent_dim = config.get("latent_dim", 256)
     input_size = config.get("input_size", 128)
+
+    # Extract state dict early for architecture detection
+    state_dict = _extract_state_dict(checkpoint)
+    is_v3_ckpt = _is_v3_equivariant_state_dict(state_dict)
     
-    # Create model
-    if use_simplified or not E2CNN_AVAILABLE:
+    # Create model (architecture-aware)
+    if is_v3_ckpt:
+        if not E2CNN_AVAILABLE:
+            raise ImportError(
+                "Checkpoint appears to be ECNNAutoencoderV3 (equivariant) but e2cnn is not installed. "
+                "Install with: pip install e2cnn"
+            )
+
+        inferred_latent_dim = latent_dim
+        if isinstance(state_dict, dict) and "fc_encode.weight" in state_dict:
+            inferred_latent_dim = int(state_dict["fc_encode.weight"].shape[0])
+
+        print(f"Detected ECNNAutoencoderV3 checkpoint. Using latent_dim={inferred_latent_dim}.")
+        model = ECNNAutoencoderV3(latent_dim=inferred_latent_dim)
+    elif use_simplified or not E2CNN_AVAILABLE:
         print("Using simplified CNN autoencoder.")
         model = SimplifiedECNN(
             in_channels=in_channels,
@@ -329,22 +476,21 @@ def load_ecnn_model(
         )
     
     # Load state dict
-    state_dict_key = "model_state_dict" if "model_state_dict" in checkpoint else "state_dict"
-    if state_dict_key in checkpoint:
+    try:
+        model.load_state_dict(state_dict)
+        print(f"Model weights loaded from: {checkpoint_path}")
+    except RuntimeError as e:
+        print(f"Warning: Could not load state dict directly: {e}")
+        print("Attempting to load with strict=False...")
         try:
-            model.load_state_dict(checkpoint[state_dict_key])
-            print(f"Model weights loaded from: {checkpoint_path}")
-        except RuntimeError as e:
-            print(f"Warning: Could not load state dict directly: {e}")
-            print("Attempting to load with strict=False...")
-            model.load_state_dict(checkpoint[state_dict_key], strict=False)
-    else:
-        # Assume checkpoint is just the state dict
-        try:
-            model.load_state_dict(checkpoint)
-            print(f"Model weights loaded from: {checkpoint_path}")
-        except RuntimeError as e:
-            print(f"Warning: Could not load weights: {e}")
+            missing, unexpected = model.load_state_dict(state_dict, strict=False)
+            print(f"Loaded with strict=False. Missing keys: {len(missing)}, Unexpected keys: {len(unexpected)}")
+        except RuntimeError as e2:
+            raise RuntimeError(
+                "Failed to load checkpoint due to architecture mismatch. "
+                "Checkpoint and model definition are incompatible.\n"
+                f"Original error: {e2}"
+            )
     
     model = model.to(device)
     model.eval()
