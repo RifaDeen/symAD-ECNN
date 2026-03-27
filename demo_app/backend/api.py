@@ -17,6 +17,11 @@ from scipy import ndimage, interpolate
 from e2cnn import gspaces
 from e2cnn import nn as e2nn
 
+from domain_models import PredictOptions
+from inference_service import InferenceService, RiskScoringService
+from prediction_service import PredictionService
+from preprocessing_service import PreprocessingService
+
 
 # ============================================================
 # PATHS (relative to this file, so it works anywhere)
@@ -434,6 +439,11 @@ app = Flask(__name__)
 MODEL_PATH = Path(os.environ.get("SYMAD_MODEL_PATH", str(DEFAULT_MODEL_PATH)))
 MODEL, DEVICE = load_model(MODEL_PATH)
 
+preprocessing_service = PreprocessingService()
+inference_service = InferenceService(MODEL, DEVICE)
+risk_service = RiskScoringService()
+prediction_service = PredictionService(preprocessing_service, inference_service, risk_service)
+
 
 @app.get("/health")
 def health():
@@ -456,197 +466,28 @@ def predict():
     file_bytes = f.read()
 
     threshold = float(request.form.get("threshold", DEFAULT_THRESHOLD))
-    apply_center = request.form.get("apply_center", "true").lower() == "true"
-    apply_nyul = request.form.get("apply_nyul", "true").lower() == "true"
-    skip_preprocess = request.form.get("skip_preprocess", "false").lower() == "true"
+    options = PredictOptions(
+        threshold=threshold,
+        apply_center=request.form.get("apply_center", "true").lower() == "true",
+        apply_nyul=request.form.get("apply_nyul", "true").lower() == "true",
+        skip_preprocess=request.form.get("skip_preprocess", "false").lower() == "true",
+        use_aggregation=request.form.get("use_aggregation", "false").lower() == "true",
+        agg_slices=int(request.form.get("agg_slices", "7")),
+        agg_method=request.form.get("agg_method", "mean").lower().strip(),
+    )
 
-    # NEW: aggregation options
-    use_agg = request.form.get("use_aggregation", "false").lower() == "true"
-    agg_k = int(request.form.get("agg_slices", "7"))
-    agg_method = request.form.get("agg_method", "mean").lower().strip()  # mean | median
-
-    # metrics-based risk banding
     normal_mean = float(metrics.get("normal_error_mean", 0.0028592257294803858)) if METRICS_JSON_PATH.exists() else 0.0028592257
     anomaly_mean = float(metrics.get("anomaly_error_mean", 0.00501307612285018)) if METRICS_JSON_PATH.exists() else 0.0050130761
 
     try:
-        debug = {"skip_preprocess": skip_preprocess}
-
-        # ============================================================
-        # MODE 1: Skip preprocessing (expects 128x128 slice)
-        # ============================================================
-        if skip_preprocess:
-            if filename.lower().endswith(".npy"):
-                x = np.load(io.BytesIO(file_bytes), allow_pickle=False).astype(np.float32)
-            else:
-                from PIL import Image
-                img = Image.open(io.BytesIO(file_bytes)).convert("L")
-                x = (np.array(img).astype(np.float32) / 255.0)
-
-            if x.ndim == 3 and x.shape[0] == 1:
-                x = x[0]
-            if x.ndim != 2:
-                raise ValueError(f"Preprocessed input must be 2D 128×128. Got {x.shape}")
-            if x.shape != (128, 128):
-                raise ValueError(f"Preprocessed input must be 128×128. Got {x.shape}")
-
-            if x.max() > 1.5:
-                x = x / 255.0
-            x = np.clip(x, 0, 1).astype(np.float32)
-
-            recon, err_abs, err_smooth, score = compute_score_and_maps(MODEL, DEVICE, x)
-            risk = compute_risk_level(score, threshold, normal_mean, anomaly_mean)
-
-            return jsonify({
-                "anomaly": bool(score > threshold),
-                "risk_level": risk,
-                "score": score,
-                "threshold": threshold,
-                "aggregation": {"enabled": False},
-                "debug": {
-                    **debug,
-                    "type": "preprocessed",
-                    "shape": list(x.shape),
-                    "min": float(x.min()),
-                    "max": float(x.max()),
-                    "nonzero_ratio": float(np.count_nonzero(x) / x.size),
-                },
-                "arrays": {
-                    "input": x.tolist(),
-                    "reconstruction": recon.tolist(),
-                    "error_abs": err_abs.tolist(),
-                    "error_smooth": err_smooth.tolist()
-                }
-            })
-
-        # ============================================================
-        # MODE 2: Raw input (NIfTI / NPY / Image) with optional aggregation
-        # ============================================================
-        name = filename.lower()
-
-        # ---- NIfTI volume path supports aggregation ----
-        if name.endswith(".nii") or name.endswith(".nii.gz"):
-            suffix = ".nii.gz" if name.endswith(".nii.gz") else ".nii"
-            tmp_path = None
-            try:
-                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-                tmp_path = tmp.name
-                tmp.write(file_bytes)
-                tmp.close()
-
-                img_obj = nib.load(tmp_path)
-                img_obj = nib.as_closest_canonical(img_obj)
-                vol = img_obj.get_fdata()
-
-            finally:
-                if tmp_path is not None:
-                    try:
-                        import gc
-                        gc.collect()
-                        os.unlink(tmp_path)
-                    except Exception:
-                        pass
-
-            if vol.ndim == 4:
-                vol = vol[..., 0]
-            if vol.ndim != 3:
-                raise ValueError(f"Expected 3D NIfTI. Got shape {vol.shape}")
-
-            vol = remove_artifacts(vol, percentile=99)
-            vol01 = normalize01(vol)
-
-            best_idx = pick_middle_slice_index(vol01)
-
-            # Aggregation only makes sense for volumes
-            if use_agg:
-                idxs = get_slice_indices_around(best_idx, vol01.shape[2], agg_k)
-            else:
-                idxs = [best_idx]
-
-            slice_scores = []
-            slice_payload = []
-
-            # run per-slice
-            for i in idxs:
-                x = preprocess_single_slice_from_volume(vol01, i, apply_nyul, apply_center)
-                recon, err_abs, err_smooth, sc = compute_score_and_maps(MODEL, DEVICE, x)
-                slice_scores.append(float(sc))
-                slice_payload.append({
-                    "idx": int(i),
-                    "score": float(sc),
-                    "input": x,
-                    "reconstruction": recon,
-                    "error_abs": err_abs,
-                    "error_smooth": err_smooth
-                })
-
-            # aggregate
-            if agg_method == "median":
-                final_score = float(np.median(slice_scores))
-            else:
-                final_score = float(np.mean(slice_scores))
-
-            # choose a representative slice for visualization: the max-score slice
-            rep = max(slice_payload, key=lambda d: d["score"])
-
-            risk = compute_risk_level(final_score, threshold, normal_mean, anomaly_mean)
-
-            debug.update({
-                "type": "nifti",
-                "orig_shape": list(vol01.shape),
-                "selected_center_slice": int(best_idx),
-                "used_indices": [int(i) for i in idxs],
-                "agg_method": agg_method,
-                "slice_scores": slice_scores,
-                "nonzero_ratio_rep": float(np.count_nonzero(rep["input"]) / rep["input"].size),
-                "rep_slice": int(rep["idx"])
-            })
-
-            return jsonify({
-                "anomaly": bool(final_score > threshold),
-                "risk_level": risk,
-                "score": final_score,
-                "threshold": threshold,
-                "aggregation": {
-                    "enabled": bool(use_agg),
-                    "k": int(len(idxs)),
-                    "method": agg_method,
-                    "rep_slice": int(rep["idx"]),
-                    "slice_scores": slice_scores,
-                    "slice_indices": [int(i) for i in idxs]
-                },
-                "debug": debug,
-                "arrays": {
-                    # show representative slice maps (max-score)
-                    "input": rep["input"].tolist(),
-                    "reconstruction": rep["reconstruction"].tolist(),
-                    "error_abs": rep["error_abs"].tolist(),
-                    "error_smooth": rep["error_smooth"].tolist()
-                }
-            })
-
-        # ---- Non-volume inputs: fallback to your existing preprocess_any ----
-        x, pre_dbg = preprocess_any(file_bytes, filename, apply_nyul, apply_center)
-        debug.update(pre_dbg)
-
-        recon, err_abs, err_smooth, score = compute_score_and_maps(MODEL, DEVICE, x)
-        risk = compute_risk_level(score, threshold, normal_mean, anomaly_mean)
-
-        return jsonify({
-            "anomaly": bool(score > threshold),
-            "risk_level": risk,
-            "score": score,
-            "threshold": threshold,
-            "aggregation": {"enabled": False},
-            "debug": debug,
-            "arrays": {
-                "input": x.tolist(),
-                "reconstruction": recon.tolist(),
-                "error_abs": err_abs.tolist(),
-                "error_smooth": err_smooth.tolist()
-            }
-        })
-
+        result = prediction_service.predict(
+            file_bytes=file_bytes,
+            filename=filename,
+            options=options,
+            normal_mean=normal_mean,
+            anomaly_mean=anomaly_mean,
+        )
+        return jsonify(result.to_dict())
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
