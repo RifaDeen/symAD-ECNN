@@ -301,14 +301,11 @@ def create_sample_panel(
             axes[i, 2].set_title("Error Map", fontsize=10)
         axes[i, 2].axis('off')
         
-        # Overlay
-        axes[i, 3].imshow(input_img, cmap='gray')
-        if smooth_error.max() > 0:
-            smooth_normalized = smooth_error / smooth_error.max()
-            alpha_map = np.clip((smooth_normalized - 0.15) / 0.85, 0.0, 1.0) * 0.85
-            axes[i, 3].imshow(smooth_normalized, cmap='hot', alpha=alpha_map)
+        # Smoothed map (demo/training style)
+        vmax_smooth = float(smooth_error.max()) if float(smooth_error.max()) > 0 else 1e-6
+        axes[i, 3].imshow(smooth_error, cmap='jet', vmin=0, vmax=vmax_smooth)
         if i == 0:
-            axes[i, 3].set_title(f"Smoothed Heatmap Overlay (σ={smooth_sigma:g})", fontsize=10)
+            axes[i, 3].set_title(f"Smoothed Map (σ={smooth_sigma:g})", fontsize=10)
         axes[i, 3].axis('off')
     
     plt.tight_layout()
@@ -389,15 +386,12 @@ def create_summary_grid(
         if samples.get(cat):
             sample = samples[cat][0]
             
-            # Show input with error overlay
-            ax.imshow(sample["input"], cmap='gray')
+            # Show smoothed map (demo/training style)
             smooth_error = sample.get("smoothed_error_map")
             if smooth_error is None:
                 smooth_error = ndimage.gaussian_filter(sample["error_map"], sigma=smooth_sigma).astype(np.float32)
-            if smooth_error.max() > 0:
-                smooth_norm = smooth_error / smooth_error.max()
-                alpha_map = np.clip((smooth_norm - 0.15) / 0.85, 0.0, 1.0) * 0.8
-                ax.imshow(smooth_norm, cmap='hot', alpha=alpha_map)
+            vmax_smooth = float(smooth_error.max()) if float(smooth_error.max()) > 0 else 1e-6
+            ax.imshow(smooth_error, cmap='jet', vmin=0, vmax=vmax_smooth)
             
             ax.set_title(f"{title}\nScore: {sample['score']:.4f}", fontsize=12, color=color)
         else:

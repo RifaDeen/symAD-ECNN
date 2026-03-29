@@ -13,12 +13,15 @@ Purpose: Systematic threshold and scoring method ablation for ECNN
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import random
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 from tqdm import tqdm
 import json
+import matplotlib.pyplot as plt
+from scipy import ndimage
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -160,6 +163,126 @@ def compute_scores_for_dataset(
                 paths.append(image_paths[i])
     
     return np.array(scores), paths
+
+
+# =============================================================================
+# RANDOM SLICE VISUALIZATION (TRAINING-STYLE)
+# =============================================================================
+
+@torch.no_grad()
+def visualize_best_worst(
+    model: torch.nn.Module,
+    dataset: Dataset,
+    indices: List[int],
+    title_prefix: str = "random_samples",
+    sigma: float = 2.0,
+    device: str = "cuda",
+    save_path: Optional[Path] = None,
+) -> Path:
+    """
+    Visualize selected dataset indices in training/demo style:
+    Input | Reconstruction | Raw Error | Smoothed Map.
+    """
+    if not indices:
+        raise ValueError("No indices provided for visualization.")
+
+    model.eval()
+
+    n = len(indices)
+    fig, axes = plt.subplots(n, 4, figsize=(16, 4 * n))
+    if n == 1:
+        axes = axes.reshape(1, -1)
+
+    for row, idx in enumerate(indices):
+        x, path = dataset[idx]
+        if x.ndim == 2:
+            x = x.unsqueeze(0)
+        inp = x.unsqueeze(0).to(device)
+
+        recon, _ = compute_error_maps(model, inp, error_mode="squared")
+
+        input_np = inp.squeeze().detach().cpu().numpy().astype(np.float32)
+        recon_np = recon.squeeze().detach().cpu().numpy().astype(np.float32)
+
+        err_abs = np.abs(input_np - recon_np).astype(np.float32)
+        err_smooth = ndimage.gaussian_filter(err_abs, sigma=sigma).astype(np.float32)
+
+        vmax_err = float(err_abs.max()) * 0.8 if float(err_abs.max()) > 0 else 1e-6
+        vmax_smooth = float(err_smooth.max()) if float(err_smooth.max()) > 0 else 1e-6
+
+        axes[row, 0].imshow(input_np, cmap="gray", vmin=0, vmax=1)
+        axes[row, 0].set_title(f"Input\nidx={idx}", fontsize=10)
+        axes[row, 0].axis("off")
+
+        axes[row, 1].imshow(recon_np, cmap="gray", vmin=0, vmax=1)
+        axes[row, 1].set_title("Reconstruction", fontsize=10)
+        axes[row, 1].axis("off")
+
+        axes[row, 2].imshow(err_abs, cmap="hot", vmin=0, vmax=vmax_err)
+        axes[row, 2].set_title("Raw Error", fontsize=10)
+        axes[row, 2].axis("off")
+
+        axes[row, 3].imshow(err_smooth, cmap="jet", vmin=0, vmax=vmax_smooth)
+        axes[row, 3].set_title(f"Smoothed Map (σ={sigma:g})", fontsize=10)
+        axes[row, 3].axis("off")
+
+        if isinstance(path, str):
+            axes[row, 0].text(
+                0.01,
+                0.02,
+                Path(path).name,
+                transform=axes[row, 0].transAxes,
+                fontsize=8,
+                color="yellow",
+                ha="left",
+                va="bottom",
+                bbox=dict(facecolor="black", alpha=0.35, pad=2),
+            )
+
+    fig.suptitle(f"{title_prefix.replace('_', ' ').title()} ({n} slices)", fontsize=14, y=1.01)
+    plt.tight_layout()
+
+    if save_path is None:
+        out_dir = FIGURES_DIR / "tp_fp_fn_tn"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        save_path = out_dir / f"{title_prefix}.png"
+
+    fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.show()
+    print(f"Saved random slice visualization: {save_path}")
+    return save_path
+
+
+def visualize_random_slices(
+    model: torch.nn.Module,
+    dataset: Dataset,
+    num_samples: int = 5,
+    sigma: float = 2.0,
+    device: str = "cuda",
+    title_prefix: str = "random_samples",
+    seed: Optional[int] = None,
+) -> Path:
+    """
+    Picks random indices from a dataset and visualizes them.
+    """
+    total_len = len(dataset)
+    if total_len == 0:
+        raise ValueError("Dataset is empty. Cannot visualize random slices.")
+
+    n = min(num_samples, total_len)
+    rng = random.Random(seed)
+    random_indices = rng.sample(range(total_len), n)
+
+    print(f"🔍 Visualizing {n} random slices (indices: {random_indices})...")
+
+    return visualize_best_worst(
+        model=model,
+        dataset=dataset,
+        indices=random_indices,
+        title_prefix=title_prefix,
+        sigma=sigma,
+        device=device,
+    )
 
 
 # =============================================================================
