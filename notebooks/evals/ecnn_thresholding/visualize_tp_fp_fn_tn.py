@@ -49,6 +49,8 @@ def collect_classified_samples(
     threshold: float,
     score_method: str = "mean",
     error_mode: str = "abs",
+    display_error_mode: str = "abs",
+    smooth_sigma: float = 2.0,
     device: str = "cuda",
     max_samples: int = 20
 ) -> Dict[str, List[Dict]]:
@@ -61,7 +63,10 @@ def collect_classified_samples(
         anomaly_images: List of anomaly sample images (numpy arrays).
         threshold: Classification threshold.
         score_method: Scoring method to use.
-        error_mode: Error computation mode.
+        error_mode: Error computation mode used for score/class assignment.
+        display_error_mode: Error mode used for visualization maps.
+            Use "abs" to match training/demo overlays.
+        smooth_sigma: Gaussian smoothing sigma for display heatmaps.
         device: Device for inference.
         max_samples: Maximum samples to collect per category.
         
@@ -105,6 +110,14 @@ def collect_classified_samples(
             
             # Compute score
             score = compute_score(error_np, brain_mask, method=score_method)
+
+            # Build display map independently (to match training/demo visualization)
+            if display_error_mode == "abs":
+                display_error = np.abs(input_np - recon_np).astype(np.float32)
+            elif display_error_mode == "squared":
+                display_error = ((input_np - recon_np) ** 2).astype(np.float32)
+            else:
+                raise ValueError(f"Unknown display_error_mode: {display_error_mode}")
             
             # Classify
             predicted_anomaly = score >= threshold
@@ -112,8 +125,8 @@ def collect_classified_samples(
             sample_data = {
                 "input": input_np,
                 "reconstruction": recon_np,
-                "error_map": error_np,
-                "smoothed_error_map": ndimage.gaussian_filter(error_np, sigma=2.0).astype(np.float32),
+                "error_map": display_error,
+                "smoothed_error_map": ndimage.gaussian_filter(display_error, sigma=smooth_sigma).astype(np.float32),
                 "score": score,
                 "threshold": threshold,
                 "is_anomaly": is_anomaly,
@@ -411,6 +424,7 @@ def visualize_tp_fp_fn_tn(
     threshold: float = None,
     score_method: str = "mean",
     error_mode: Optional[str] = None,
+    display_error_mode: str = "abs",
     smooth_sigma: float = 2.0,
     output_dir: Optional[Path] = None,
     max_samples_per_category: int = 8,
@@ -428,6 +442,8 @@ def visualize_tp_fp_fn_tn(
         score_method: Score method to use.
         error_mode: Error-map mode ("abs" or "squared"). If None, uses
             ``ECNN_DEFAULT_ERROR_MODE``.
+        display_error_mode: Visualization error-map mode. Keep as "abs" to match
+            training/demo Gaussian-smoothed heatmaps.
         smooth_sigma: Gaussian smoothing sigma for heatmap overlays.
         output_dir: Output directory for figures.
         max_samples_per_category: Max samples per category.
@@ -520,6 +536,8 @@ def visualize_tp_fp_fn_tn(
         threshold=threshold,
         score_method=score_method,
         error_mode=selected_error_mode,
+        display_error_mode=display_error_mode,
+        smooth_sigma=smooth_sigma,
         device=device,
         max_samples=max_samples_per_category
     )
@@ -538,6 +556,7 @@ def visualize_tp_fp_fn_tn(
         "threshold": float(threshold),
         "score_method": score_method,
         "error_mode": selected_error_mode,
+        "display_error_mode": display_error_mode,
         "smooth_sigma": float(smooth_sigma),
         "sample_counts": sample_counts,
         "normal_data_path": str(normal_data_path),
