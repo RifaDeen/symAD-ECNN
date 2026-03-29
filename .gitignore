@@ -167,6 +167,9 @@ pdfs/extract_pdf.py
 # ========================================
 # Project Specific
 # ========================================
+# Local markdown working docs
+md_files/**/*.md
+
 # Cached evaluation results
 *.cache
 cache/
