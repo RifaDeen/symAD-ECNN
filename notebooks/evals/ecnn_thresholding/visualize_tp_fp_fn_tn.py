@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from scipy import ndimage
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -112,6 +113,7 @@ def collect_classified_samples(
                 "input": input_np,
                 "reconstruction": recon_np,
                 "error_map": error_np,
+                "smoothed_error_map": ndimage.gaussian_filter(error_np, sigma=2.0).astype(np.float32),
                 "score": score,
                 "threshold": threshold,
                 "is_anomaly": is_anomaly,
@@ -204,7 +206,8 @@ def create_sample_panel(
     samples: List[Dict],
     category: str,
     n_rows: int = 4,
-    save_path: Optional[Path] = None
+    save_path: Optional[Path] = None,
+    smooth_sigma: float = 2.0,
 ) -> plt.Figure:
     """
     Create a panel figure for one category of samples.
@@ -261,6 +264,9 @@ def create_sample_panel(
         input_img = sample["input"]
         recon = sample["reconstruction"]
         error = sample["error_map"]
+        smooth_error = sample.get("smoothed_error_map")
+        if smooth_error is None:
+            smooth_error = ndimage.gaussian_filter(error, sigma=smooth_sigma).astype(np.float32)
         score = sample["score"]
         
         # Input image
@@ -283,11 +289,11 @@ def create_sample_panel(
         
         # Overlay
         axes[i, 3].imshow(input_img, cmap='gray')
-        if error.max() > 0:
-            error_normalized = error / error.max()
-            axes[i, 3].imshow(error_normalized, cmap='jet', alpha=0.5)
+        if smooth_error.max() > 0:
+            smooth_normalized = smooth_error / smooth_error.max()
+            axes[i, 3].imshow(smooth_normalized, cmap='jet', alpha=0.5)
         if i == 0:
-            axes[i, 3].set_title("Heatmap Overlay", fontsize=10)
+            axes[i, 3].set_title(f"Smoothed Heatmap Overlay (σ={smooth_sigma:g})", fontsize=10)
         axes[i, 3].axis('off')
     
     plt.tight_layout()
@@ -302,7 +308,8 @@ def create_sample_panel(
 def create_all_panels(
     samples: Dict[str, List[Dict]],
     output_dir: Optional[Path] = None,
-    n_rows: int = 4
+    n_rows: int = 4,
+    smooth_sigma: float = 2.0,
 ) -> Dict[str, plt.Figure]:
     """
     Create panels for all categories.
@@ -329,7 +336,8 @@ def create_all_panels(
             samples.get(category, []),
             category,
             n_rows=n_rows,
-            save_path=save_path
+            save_path=save_path,
+            smooth_sigma=smooth_sigma,
         )
         figures[category] = fig
     
@@ -338,7 +346,8 @@ def create_all_panels(
 
 def create_summary_grid(
     samples: Dict[str, List[Dict]],
-    save_path: Optional[Path] = None
+    save_path: Optional[Path] = None,
+    smooth_sigma: float = 2.0,
 ) -> plt.Figure:
     """
     Create a summary grid showing one example from each category.
@@ -367,9 +376,12 @@ def create_summary_grid(
             
             # Show input with error overlay
             ax.imshow(sample["input"], cmap='gray')
-            if sample["error_map"].max() > 0:
-                error_norm = sample["error_map"] / sample["error_map"].max()
-                ax.imshow(error_norm, cmap='jet', alpha=0.4)
+            smooth_error = sample.get("smoothed_error_map")
+            if smooth_error is None:
+                smooth_error = ndimage.gaussian_filter(sample["error_map"], sigma=smooth_sigma).astype(np.float32)
+            if smooth_error.max() > 0:
+                smooth_norm = smooth_error / smooth_error.max()
+                ax.imshow(smooth_norm, cmap='jet', alpha=0.4)
             
             ax.set_title(f"{title}\nScore: {sample['score']:.4f}", fontsize=12, color=color)
         else:
@@ -398,6 +410,8 @@ def visualize_tp_fp_fn_tn(
     anomaly_data_path: Optional[Path] = None,
     threshold: float = None,
     score_method: str = "mean",
+    error_mode: Optional[str] = None,
+    smooth_sigma: float = 2.0,
     output_dir: Optional[Path] = None,
     max_samples_per_category: int = 8,
     n_rows_per_panel: int = 4,
@@ -412,6 +426,9 @@ def visualize_tp_fp_fn_tn(
         anomaly_data_path: Path to anomaly data.
         threshold: Classification threshold (auto-computed if None).
         score_method: Score method to use.
+        error_mode: Error-map mode ("abs" or "squared"). If None, uses
+            ``ECNN_DEFAULT_ERROR_MODE``.
+        smooth_sigma: Gaussian smoothing sigma for heatmap overlays.
         output_dir: Output directory for figures.
         max_samples_per_category: Max samples per category.
         n_rows_per_panel: Rows per visualization panel.
@@ -428,6 +445,8 @@ def visualize_tp_fp_fn_tn(
     
     if output_dir is None:
         output_dir = FIGURES_DIR / "tp_fp_fn_tn"
+
+    selected_error_mode = error_mode or ECNN_DEFAULT_ERROR_MODE
     
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -480,7 +499,7 @@ def visualize_tp_fp_fn_tn(
                 else:
                     x = torch.from_numpy(img[np.newaxis, :, :, :]).float().to(device)
                 
-                _, error_map = compute_error_maps(model, x, ECNN_DEFAULT_ERROR_MODE)
+                _, error_map = compute_error_maps(model, x, selected_error_mode)
                 error_np = error_map.squeeze().cpu().numpy()
                 brain_mask = x.squeeze().cpu().numpy() > 0.01
                 
@@ -500,24 +519,26 @@ def visualize_tp_fp_fn_tn(
         anomaly_images=anomaly_images,
         threshold=threshold,
         score_method=score_method,
-        error_mode=ECNN_DEFAULT_ERROR_MODE,
+        error_mode=selected_error_mode,
         device=device,
         max_samples=max_samples_per_category
     )
     
     # Create visualizations
     print("\nCreating visualization panels...")
-    figures = create_all_panels(samples, output_dir, n_rows=n_rows_per_panel)
+    figures = create_all_panels(samples, output_dir, n_rows=n_rows_per_panel, smooth_sigma=smooth_sigma)
     
     # Create summary grid
     summary_path = output_dir / "classification_summary.png"
-    create_summary_grid(samples, save_path=summary_path)
+    create_summary_grid(samples, save_path=summary_path, smooth_sigma=smooth_sigma)
     
     # Save sample metadata
     sample_counts = {k: len(v) for k, v in samples.items()}
     metadata = {
         "threshold": float(threshold),
         "score_method": score_method,
+        "error_mode": selected_error_mode,
+        "smooth_sigma": float(smooth_sigma),
         "sample_counts": sample_counts,
         "normal_data_path": str(normal_data_path),
         "anomaly_data_path": str(anomaly_data_path),
