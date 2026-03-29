@@ -356,7 +356,7 @@ def run_all_experiments(
 # OUTPUT GENERATION
 # =============================================================================
 
-def results_to_dataframe(results: List[Dict]) -> "pd.DataFrame":
+def results_to_dataframe(results: List[Dict]):
     """Convert experiment results to DataFrame."""
     import pandas as pd
     
@@ -442,7 +442,8 @@ def run_ecnn_threshold_experiments(
     experiments: List[Tuple] = None,
     reference_threshold: Optional[float] = None,
     batch_size: int = 16,
-    device: str = None
+    device: str = None,
+    error_mode: Optional[str] = None,
 ) -> Tuple[List[Dict], Dict]:
     """
     Main function to run all ECNN threshold experiments.
@@ -455,6 +456,8 @@ def run_ecnn_threshold_experiments(
         reference_threshold: Reference threshold from training.
         batch_size: Batch size for inference.
         device: Device for inference.
+        error_mode: Fixed error-map mode ("abs" or "squared"). If None, uses
+            config default ``ECNN_DEFAULT_ERROR_MODE``.
         
     Returns:
         Tuple of (results list, summary dict).
@@ -464,12 +467,15 @@ def run_ecnn_threshold_experiments(
     
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    selected_error_mode = error_mode or ECNN_DEFAULT_ERROR_MODE
     
     log_name = start_experiment_log(
         "ecnn_threshold_experiments",
         params={
             "device": device,
             "batch_size": batch_size,
+            "error_mode": selected_error_mode,
             "n_experiments": len(experiments) if experiments else len(ECNN_DEFAULT_EXPERIMENTS)
         }
     )
@@ -496,6 +502,7 @@ def run_ecnn_threshold_experiments(
         
         log_message(f"Normal data: {normal_data_path}", log_name)
         log_message(f"Anomaly data: {anomaly_data_path}", log_name)
+        log_message(f"Error mode: {selected_error_mode}", log_name)
         
         # Create datasets and dataloaders
         normal_dataset = ImageFolderDataset(normal_data_path)
@@ -519,7 +526,7 @@ def run_ecnn_threshold_experiments(
             anomaly_dataloader=anomaly_loader,
             experiments=experiments,
             device=device,
-            error_mode=ECNN_DEFAULT_ERROR_MODE,
+            error_mode=selected_error_mode,
             reference_threshold=reference_threshold,
             log_name=log_name
         )
