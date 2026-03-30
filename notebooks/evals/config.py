@@ -52,19 +52,16 @@ FRONTEND_DIR = DEMO_APP_DIR / "frontend"
 # =============================================================================
 
 # Score computation methods for anomaly detection
-# - "mean": Mean of error values within brain mask
-# - "p95": 95th percentile of error values within brain mask
-# - "p90": 90th percentile of error values within brain mask
-ECNN_DEFAULT_SCORE_METHODS = ["mean", "p95", "p90"]
+# - "mean": Mean of error values
+ECNN_DEFAULT_SCORE_METHODS = ["mean"]
 
 # Target false positive rates for threshold computation
 # Used to set thresholds based on normal validation data
 ECNN_DEFAULT_FPRS = [0.05, 0.10, 0.20]
 
 # Error computation mode
-# - "abs": Absolute error |input - reconstruction|
 # - "squared": Squared error (input - reconstruction)^2
-ECNN_DEFAULT_ERROR_MODE = "abs"
+ECNN_DEFAULT_ERROR_MODE = "squared"
 
 # Minimum number of brain pixels required for valid score computation
 # Slices with fewer brain pixels are considered invalid
@@ -73,13 +70,13 @@ ECNN_DEFAULT_MIN_BRAIN_PIXELS = 50
 # Default threshold experiments to run
 # Each tuple: (score_method, threshold_method, threshold_param)
 ECNN_DEFAULT_EXPERIMENTS = [
-    ("mean", "reference", None),      # Original threshold from training
-    ("mean", "fpr", 0.10),            # FPR-controlled at 10%
-    ("mean", "fpr", 0.20),            # FPR-controlled at 20%
-    ("p95", "fpr", 0.05),             # 95th percentile, FPR 5%
-    ("p95", "fpr", 0.10),             # 95th percentile, FPR 10%
-    ("p95", "fpr", 0.20),             # 95th percentile, FPR 20%
-    ("p90", "fpr", 0.20),             # 90th percentile, FPR 20%
+    ("mean", "fpr", 0.20),
+    ("mean", "fpr", 0.10),
+    ("mean", "fpr", 0.05),
+    ("mean", "percentile", 95),
+    ("mean", "percentile", 98),
+    ("mean", "percentile", 99),
+    ("mean", "iqr", None),
 ]
 
 # =============================================================================

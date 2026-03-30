@@ -27,7 +27,7 @@ from scipy import ndimage
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
-    DRIVE_PROJECT_ROOT, DATA_DIR, JSON_DIR, TABLES_DIR, LOGS_DIR,
+    DRIVE_PROJECT_ROOT, DATA_DIR, JSON_DIR, TABLES_DIR, LOGS_DIR, FIGURES_DIR,
     ECNN_DEFAULT_SCORE_METHODS, ECNN_DEFAULT_FPRS, ECNN_DEFAULT_ERROR_MODE,
     ECNN_DEFAULT_MIN_BRAIN_PIXELS, ECNN_DEFAULT_EXPERIMENTS,
     ensure_directories_exist
@@ -37,7 +37,7 @@ from path_utils import (
     require_file
 )
 from metrics_utils import (
-    compute_score, threshold_from_normal_scores, threshold_youden_j,
+    compute_score, threshold_from_normal_scores,
     compute_full_metrics, create_experiment_result
 )
 from io_utils import (
@@ -119,7 +119,8 @@ def compute_scores_for_dataset(
     score_method: str = "mean",
     error_mode: str = "abs",
     device: str = "cuda",
-    min_brain_pixels: int = 50
+    min_brain_pixels: int = 50,
+    use_brain_mask: bool = False,
 ) -> Tuple[np.ndarray, List[str]]:
     """
     Compute anomaly scores for all images in a dataset.
@@ -130,7 +131,10 @@ def compute_scores_for_dataset(
         score_method: Scoring method ("mean", "p95", "p90").
         error_mode: Error computation mode.
         device: Device for inference.
-        min_brain_pixels: Minimum brain pixels for valid score.
+        min_brain_pixels: Minimum brain pixels for valid score when mask is enabled.
+        use_brain_mask: If True, score only inside a simple brain mask and skip
+            slices with too few brain pixels. If False, score the full slice
+            (training/demo parity).
         
     Returns:
         Tuple of (scores array, file paths list).
@@ -149,13 +153,15 @@ def compute_scores_for_dataset(
             # Compute scores for each image in batch
             for i in range(images.shape[0]):
                 error_map = error_maps[i, 0].cpu().numpy()
-                
-                # Create simple brain mask (non-zero pixels)
-                brain_mask = images[i, 0].cpu().numpy() > 0.01
-                
-                if brain_mask.sum() < min_brain_pixels:
-                    # Skip slices with insufficient brain content
-                    continue
+
+                brain_mask = None
+                if use_brain_mask:
+                    # Create simple brain mask (non-zero pixels)
+                    brain_mask = images[i, 0].cpu().numpy() > 0.01
+
+                    if brain_mask.sum() < min_brain_pixels:
+                        # Skip slices with insufficient brain content
+                        continue
                 
                 # Compute score
                 score = compute_score(error_map, brain_mask, method=score_method)
@@ -296,7 +302,6 @@ def run_single_experiment(
     threshold_param: Optional[float],
     normal_scores: np.ndarray,
     anomaly_scores: np.ndarray,
-    reference_threshold: Optional[float] = None
 ) -> Dict:
     """
     Run a single threshold experiment.
@@ -304,11 +309,10 @@ def run_single_experiment(
     Args:
         experiment_name: Name/ID for this experiment.
         score_method: Score computation method used.
-        threshold_method: Threshold determination method ("fpr", "youden", "reference").
+        threshold_method: Threshold determination method ("fpr", "percentile", "iqr").
         threshold_param: Parameter for threshold method (e.g., target FPR).
         normal_scores: Scores from normal validation samples.
         anomaly_scores: Scores from anomaly test samples.
-        reference_threshold: Reference threshold from training (for "reference" method).
         
     Returns:
         Experiment result dictionary.
@@ -317,20 +321,17 @@ def run_single_experiment(
     if threshold_method == "fpr":
         threshold = threshold_from_normal_scores(normal_scores, target_fpr=threshold_param)
         threshold_desc = f"FPR={threshold_param:.0%}"
-    elif threshold_method == "youden":
-        # Need all labels for Youden
-        all_scores = np.concatenate([normal_scores, anomaly_scores])
-        all_labels = np.concatenate([np.zeros(len(normal_scores)), np.ones(len(anomaly_scores))])
-        threshold, _ = threshold_youden_j(all_labels, all_scores)
-        threshold_desc = "Youden J"
-    elif threshold_method == "reference":
-        if reference_threshold is None:
-            # Fall back to median of normal scores if no reference
-            threshold = np.percentile(normal_scores, 90)
-            threshold_desc = "Reference (P90 fallback)"
-        else:
-            threshold = reference_threshold
-            threshold_desc = "Reference (original)"
+    elif threshold_method == "percentile":
+        if threshold_param is None:
+            raise ValueError("threshold_param must be provided for percentile thresholding.")
+        threshold = float(np.percentile(normal_scores, threshold_param))
+        threshold_desc = f"P{int(threshold_param)}"
+    elif threshold_method == "iqr":
+        q1 = float(np.percentile(normal_scores, 25))
+        q3 = float(np.percentile(normal_scores, 75))
+        iqr = q3 - q1
+        threshold = float(q3 + 1.5 * iqr)
+        threshold_desc = "IQR"
     else:
         raise ValueError(f"Unknown threshold method: {threshold_method}")
     
@@ -345,13 +346,14 @@ def run_single_experiment(
     result = create_experiment_result(
         experiment_name=experiment_name,
         score_method=score_method,
-        threshold_method=f"{threshold_method}_{threshold_desc}",
+        threshold_method=threshold_method,
         threshold_value=threshold,
         metrics=metrics,
         normal_scores=normal_scores,
         anomaly_scores=anomaly_scores,
         notes=f"Score: {score_method}, Threshold: {threshold_desc}"
     )
+    result["threshold_param"] = threshold_param
     
     return result
 
@@ -363,7 +365,7 @@ def run_all_experiments(
     experiments: List[Tuple] = None,
     device: str = "cuda",
     error_mode: str = "abs",
-    reference_threshold: Optional[float] = None,
+    use_brain_mask: bool = False,
     log_name: str = None
 ) -> Tuple[List[Dict], Dict]:
     """
@@ -376,7 +378,8 @@ def run_all_experiments(
         experiments: List of (score_method, threshold_method, threshold_param) tuples.
         device: Device for inference.
         error_mode: Error computation mode.
-        reference_threshold: Optional reference threshold from training.
+        use_brain_mask: Whether to restrict score computation to a simple brain
+            mask and skip low-brain-content slices.
         log_name: Name for logging.
         
     Returns:
@@ -392,18 +395,22 @@ def run_all_experiments(
     score_cache = {}
     
     for score_method, _, _ in experiments:
+        if score_method != "mean":
+            raise ValueError(f"Unsupported score method '{score_method}'. Only 'mean' is allowed.")
         if score_method not in score_cache:
             if log_name:
                 log_message(f"Computing {score_method} scores...", log_name)
             
             # Normal scores
             normal_scores, _ = compute_scores_for_dataset(
-                model, normal_dataloader, score_method, error_mode, device
+                model, normal_dataloader, score_method, error_mode, device,
+                use_brain_mask=use_brain_mask
             )
             
             # Anomaly scores
             anomaly_scores, _ = compute_scores_for_dataset(
-                model, anomaly_dataloader, score_method, error_mode, device
+                model, anomaly_dataloader, score_method, error_mode, device,
+                use_brain_mask=use_brain_mask
             )
             
             score_cache[score_method] = {
@@ -438,7 +445,6 @@ def run_all_experiments(
             threshold_param=threshold_param,
             normal_scores=normal_scores,
             anomaly_scores=anomaly_scores,
-            reference_threshold=reference_threshold
         )
         
         results.append(result)
@@ -489,6 +495,7 @@ def results_to_dataframe(results: List[Dict]):
             "experiment": r["experiment_name"],
             "score_method": r["score_method"],
             "threshold_method": r["threshold_method"],
+            "threshold_param": r.get("threshold_param"),
             "threshold": r["threshold_value"],
             **{k: v for k, v in r["metrics"].items() if isinstance(v, (int, float))}
         }
@@ -563,10 +570,10 @@ def run_ecnn_threshold_experiments(
     normal_data_path: Optional[Path] = None,
     anomaly_data_path: Optional[Path] = None,
     experiments: List[Tuple] = None,
-    reference_threshold: Optional[float] = None,
     batch_size: int = 16,
     device: str = None,
     error_mode: Optional[str] = None,
+    use_brain_mask: bool = False,
 ) -> Tuple[List[Dict], Dict]:
     """
     Main function to run all ECNN threshold experiments.
@@ -576,11 +583,12 @@ def run_ecnn_threshold_experiments(
         normal_data_path: Path to normal validation data (auto-detected if None).
         anomaly_data_path: Path to anomaly test data (auto-detected if None).
         experiments: Custom experiments list (uses defaults if None).
-        reference_threshold: Reference threshold from training.
         batch_size: Batch size for inference.
         device: Device for inference.
         error_mode: Fixed error-map mode ("abs" or "squared"). If None, uses
             config default ``ECNN_DEFAULT_ERROR_MODE``.
+        use_brain_mask: If True, compute scores only inside a simple brain mask.
+            If False (default), use full-slice scoring for training/demo parity.
         
     Returns:
         Tuple of (results list, summary dict).
@@ -592,6 +600,8 @@ def run_ecnn_threshold_experiments(
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
     selected_error_mode = error_mode or ECNN_DEFAULT_ERROR_MODE
+    if selected_error_mode != "squared":
+        raise ValueError("Unsupported error_mode. Only 'squared' is allowed for this pipeline.")
     
     log_name = start_experiment_log(
         "ecnn_threshold_experiments",
@@ -599,6 +609,7 @@ def run_ecnn_threshold_experiments(
             "device": device,
             "batch_size": batch_size,
             "error_mode": selected_error_mode,
+            "use_brain_mask": bool(use_brain_mask),
             "n_experiments": len(experiments) if experiments else len(ECNN_DEFAULT_EXPERIMENTS)
         }
     )
@@ -626,6 +637,7 @@ def run_ecnn_threshold_experiments(
         log_message(f"Normal data: {normal_data_path}", log_name)
         log_message(f"Anomaly data: {anomaly_data_path}", log_name)
         log_message(f"Error mode: {selected_error_mode}", log_name)
+        log_message(f"Use brain mask: {bool(use_brain_mask)}", log_name)
         
         # Create datasets and dataloaders
         normal_dataset = ImageFolderDataset(normal_data_path)
@@ -650,7 +662,7 @@ def run_ecnn_threshold_experiments(
             experiments=experiments,
             device=device,
             error_mode=selected_error_mode,
-            reference_threshold=reference_threshold,
+            use_brain_mask=use_brain_mask,
             log_name=log_name
         )
         
