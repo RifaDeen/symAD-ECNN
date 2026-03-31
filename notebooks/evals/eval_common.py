@@ -157,12 +157,33 @@ def compute_reconstruction_errors(
                     inp_ch = inp[0]
                 else:
                     inp_ch = inp
-                mask = (inp_ch.cpu().numpy() > 0.01)
-                if mask.sum() < min_brain_pixels:
+
+                # Determine spatial shape of the error map
+                if err_map.dim() == 3:
+                    h_err, w_err = int(err_map.size(-2)), int(err_map.size(-1))
+                elif err_map.dim() == 2:
+                    h_err, w_err = int(err_map.size(-2)), int(err_map.size(-1))
+                else:
+                    # Fallback: infer from flattened reduced map
+                    flat_len = err_map_reduced.numel()
+                    # assume square if we can't infer
+                    h_err = w_err = int(int(flat_len ** 0.5))
+
+                # Build mask from input channel and resize to match error map spatial dims
+                mask_np = inp_ch.cpu().numpy() > 0.01
+                if mask_np.sum() < min_brain_pixels:
                     # skip this slice if insufficient brain pixels
                     continue
 
-                vals = err_map_reduced.cpu().numpy()[mask.flatten()]
+                if mask_np.shape != (h_err, w_err):
+                    # Resize mask to error-map resolution using bilinear interpolation
+                    mask_t = torch.from_numpy(mask_np.astype(np.float32)).unsqueeze(0).unsqueeze(0)
+                    mask_resized = F.interpolate(mask_t, size=(h_err, w_err), mode='bilinear', align_corners=False)
+                    mask_bool = (mask_resized.squeeze().cpu().numpy() > 0.5)
+                else:
+                    mask_bool = mask_np
+
+                vals = err_map_reduced.cpu().numpy()[mask_bool.flatten()]
                 if vals.size == 0:
                     continue
                 score = float(vals.mean())
