@@ -103,99 +103,13 @@ def compute_reconstruction_errors(
     device: str,
     desc: str = "Computing reconstruction errors",
 ) -> np.ndarray:
-    """Compute per-sample reconstruction errors.
-
-    By default this returns the mean squared-error per sample. Optional
-    brain-masked scoring is supported by setting ``use_brain_mask=True``.
-
-    Args:
-        model: model to run inference with
-        dataloader: dataloader yielding (input, target) pairs
-        device: device string
-        desc: progress description shown by tqdm
-        error_mode: 'squared' (MSE) or 'abs' (L1)
-        use_brain_mask: if True, reduce error only over pixels where input > 0.01
-        min_brain_pixels: minimum number of brain pixels required; slices with
-            fewer pixels are skipped
-
-    Returns:
-        numpy array of per-sample scalar scores (order preserved for samples
-        that were not skipped).
-    """
-    from typing import List
-
-    # Backwards-compatible parameter defaults
-    error_mode = getattr(compute_reconstruction_errors, "_error_mode_default", "squared")
-    use_brain_mask = getattr(compute_reconstruction_errors, "_use_brain_mask_default", False)
-    min_brain_pixels = getattr(compute_reconstruction_errors, "_min_brain_pixels_default", 50)
-
+    """Compute per-sample mean MSE reconstruction errors."""
     model.eval()
     errors: List[float] = []
     for x, y in tqdm(dataloader, desc=desc, leave=False):
         x = x.to(device)
         y = y.to(device)
         recon = model(x)
-
-        if error_mode == "abs":
-            per_pixel_error = torch.abs(recon - y)
-        else:
-            per_pixel_error = (recon - y) ** 2
-
-        # per_pixel_error shape: (B, C, H, W) -- reduce per-sample
-        b = per_pixel_error.size(0)
-        for i in range(b):
-            err_map = per_pixel_error[i]
-            # If multi-channel, collapse channels by mean
-            if err_map.dim() == 3 and err_map.size(0) > 1:
-                err_map_reduced = err_map.view(err_map.size(0), -1).mean(dim=0)
-            else:
-                err_map_reduced = err_map.view(-1)
-
-            if use_brain_mask:
-                inp = x[i]
-                if inp.dim() == 3:
-                    inp_ch = inp[0]
-                else:
-                    inp_ch = inp
-
-                # Determine spatial shape of the error map
-                if err_map.dim() == 3:
-                    h_err, w_err = int(err_map.size(-2)), int(err_map.size(-1))
-                elif err_map.dim() == 2:
-                    h_err, w_err = int(err_map.size(-2)), int(err_map.size(-1))
-                else:
-                    # Fallback: infer from flattened reduced map
-                    flat_len = err_map_reduced.numel()
-                    # assume square if we can't infer
-                    h_err = w_err = int(int(flat_len ** 0.5))
-
-                # Build mask from input channel and resize to match error map spatial dims
-                mask_np = inp_ch.cpu().numpy() > 0.01
-                if mask_np.sum() < min_brain_pixels:
-                    # skip this slice if insufficient brain pixels
-                    continue
-
-                if mask_np.shape != (h_err, w_err):
-                    # Resize mask to error-map resolution using bilinear interpolation
-                    mask_t = torch.from_numpy(mask_np.astype(np.float32)).unsqueeze(0).unsqueeze(0)
-                    mask_resized = F.interpolate(mask_t, size=(h_err, w_err), mode='bilinear', align_corners=False)
-                    mask_bool = (mask_resized.squeeze().cpu().numpy() > 0.5)
-                else:
-                    mask_bool = mask_np
-
-                vals = err_map_reduced.cpu().numpy()[mask_bool.flatten()]
-                if vals.size == 0:
-                    continue
-                score = float(vals.mean())
-            else:
-                score = float(err_map_reduced.mean().cpu().item())
-
-            errors.append(score)
-
+        mse = F.mse_loss(recon, y, reduction="none").view(x.size(0), -1).mean(dim=1)
+        errors.extend(mse.detach().cpu().numpy().tolist())
     return np.asarray(errors, dtype=np.float32)
-
-
-# Provide configurable defaults that callers may override via attributes
-compute_reconstruction_errors._error_mode_default = "squared"
-compute_reconstruction_errors._use_brain_mask_default = False
-compute_reconstruction_errors._min_brain_pixels_default = 50
