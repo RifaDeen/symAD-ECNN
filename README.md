@@ -203,8 +203,7 @@ pip install -r requirements_streamlit.txt
 ## 📊 Datasets (Table 6 - Data Requirements)
 
 ### IXI Dataset (Normal Brains - Training)
-- **Source**: [Kaggle Preprocessed OASIS/Epilepsy/IXI](https://www.kaggle.com/datasets/hamedamin/preprocessed-oasis-and-epilepsy-and-ixi)
-- **Original**: IXI Dataset (Brain Development Initiative)
+- **Source**: https://brain-development.org/ixi-dataset/
 - **Content**: T1-weighted MRI Gray Matter (GM) segmented maps
 - **Preprocessing Applied**: CAT12 Toolbox (SPM/MATLAB)
   - Skull stripping
