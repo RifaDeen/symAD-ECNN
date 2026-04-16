@@ -21,9 +21,30 @@ if (Test-Path $VENV_PATH) {
 
 # Start Flask backend in a new window
 Write-Host "[1/2] Starting Flask backend..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$REPO_ROOT\demo_app\backend'; python api.py"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$REPO_ROOT\demo_app\backend'; `$env:SYMAD_API_DEBUG='false'; python api.py"
 
-Start-Sleep -Seconds 2
+# Wait until backend is reachable before launching Streamlit.
+$healthUrl = "http://localhost:5000/health"
+$maxAttempts = 30
+$ready = $false
+for ($i = 1; $i -le $maxAttempts; $i++) {
+    try {
+        $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 2
+        if ($response.StatusCode -eq 200) {
+            $ready = $true
+            break
+        }
+    } catch {
+        # Backend is still starting; keep polling.
+    }
+    Start-Sleep -Seconds 1
+}
+
+if (-not $ready) {
+    Write-Host "[WARN] Backend health check not ready after $maxAttempts seconds. Starting Streamlit anyway." -ForegroundColor Yellow
+} else {
+    Write-Host "[OK] Backend is ready." -ForegroundColor Green
+}
 
 # Start Streamlit frontend in a new window
 Write-Host "[2/2] Starting Streamlit frontend..." -ForegroundColor Cyan

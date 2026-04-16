@@ -19,7 +19,7 @@ APP_DIR = Path(__file__).resolve().parent
 DEMO_APP_DIR = APP_DIR.parent
 METRICS_PATH = DEMO_APP_DIR / "backend" / "metrics_ecnn_v3.json"
 
-DEFAULT_OPT_THR = 0.002618970815092325
+DEFAULT_OPT_THR = 0.010824  # Updated to match primary evaluation (FPR@20% on brain-mask scoring)
 METRICS = None
 if METRICS_PATH.exists():
     try:
@@ -48,7 +48,7 @@ mode = st.sidebar.radio(
 skip_preprocess = (mode == "Preprocessed (skip preprocessing)")
 
 st.sidebar.divider()
-use_opt = st.sidebar.toggle("Use optimal threshold (Youden J)", value=True)
+use_opt = st.sidebar.toggle("Use optimal threshold", value=True)
 if use_opt:
     threshold = DEFAULT_OPT_THR
     st.sidebar.success(f"Threshold = {threshold:.6f}")
@@ -60,8 +60,9 @@ apply_nyul = True
 if not skip_preprocess:
     st.sidebar.divider()
     st.sidebar.subheader("Preprocessing options")
+    st.sidebar.caption("Both enabled by default")
     apply_center = st.sidebar.toggle("Centering (COM → 64,64)", value=True)
-    apply_nyul = st.sidebar.toggle("Nyul matching", value=True)
+    apply_nyul = st.sidebar.toggle("Nyul histogram matching", value=True)
 
 if METRICS:
     st.sidebar.divider()
@@ -161,8 +162,14 @@ if uploaded:
         "agg_method": agg_method,
     }
 
-    with st.spinner("Running inference..."):
-        r = requests.post(f"{API_URL}/predict", files=files, data=data, timeout=180)
+    try:
+        with st.spinner("Running inference..."):
+            r = requests.post(f"{API_URL}/predict", files=files, data=data, timeout=180)
+    except requests.exceptions.RequestException as e:
+        st.error(f"Cannot reach backend API at {API_URL}.")
+        st.caption("Please ensure the Flask backend is running, then try again.")
+        st.exception(e)
+        st.stop()
 
     if r.status_code != 200:
         st.error(f"API Error ({r.status_code}): {r.text}")

@@ -39,8 +39,8 @@ DEFAULT_METRICS_PATH = BACKEND_DIR / "metrics_ecnn_v3.json"
 IMG_SIZE = (128, 128)
 MIDDLE_SLICE_RATIO = 0.5  # middle 50%
 
-# Default threshold from metrics JSON (Youden J)
-DEFAULT_THRESHOLD = 0.0035
+# Default threshold from metrics JSON 
+DEFAULT_THRESHOLD = 0.010824
 METRICS_JSON_PATH = Path(os.environ.get("SYMAD_METRICS_JSON", str(DEFAULT_METRICS_PATH)))
 if METRICS_JSON_PATH.exists():
     try:
@@ -493,4 +493,5 @@ def predict():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    debug_mode = os.environ.get("SYMAD_API_DEBUG", "false").strip().lower() in {"1", "true", "yes", "on"}
+    app.run(host="0.0.0.0", port=5000, debug=debug_mode, use_reloader=debug_mode)

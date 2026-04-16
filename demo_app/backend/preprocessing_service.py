@@ -126,8 +126,8 @@ class PreprocessingService:
         self,
         vol01: np.ndarray,
         idx: int,
-        apply_nyul: bool,
-        apply_center: bool,
+        apply_nyul: bool = True,  # MANDATORY: Match training histogram normalization
+        apply_center: bool = True,  # MANDATORY: Center at (64,64) for ECNN equivariance
     ) -> np.ndarray:
         sl = vol01[:, :, idx]
         sl = self.resize_128(sl)
@@ -138,7 +138,13 @@ class PreprocessingService:
             sl = self.nyul_normalize(sl)
         return sl
 
-    def preprocess_any(self, file_bytes: bytes, filename: str, apply_nyul: bool, apply_center: bool):
+    def preprocess_any(
+        self,
+        file_bytes: bytes,
+        filename: str,
+        apply_nyul: bool = True,  # MANDATORY: Match IXI/BraTS training preprocessing
+        apply_center: bool = True,  # MANDATORY: Match IXI/BraTS training preprocessing
+    ):
         name = filename.lower()
         debug = {}
 
