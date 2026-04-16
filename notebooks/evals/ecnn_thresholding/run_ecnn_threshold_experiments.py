@@ -1,13 +1,9 @@
 """
-Run ECNN Threshold Experiments.
+ECNN Threshold Experiments.
 
 This script evaluates the trained ECNN model with different scoring methods
 and threshold strategies to find optimal configurations for anomaly detection.
 
-Supports dissertation section 8.5 (Further Evaluations).
-
-Author: SymAD-ECNN Project
-Purpose: Systematic threshold and scoring method ablation for ECNN
 """
 
 import sys

@@ -6,10 +6,6 @@ This script creates visualization panels showing examples of:
 - False Positives (normal samples incorrectly flagged as anomalies)
 - False Negatives (missed anomalies)
 - True Negatives (correctly identified normal samples)
-
-Supports dissertation section 8.5 (Further Evaluations) for qualitative analysis.
-
-Author: SymAD-ECNN Project
 Purpose: Generate TP/FP/FN/TN visualization panels for error analysis
 """
 

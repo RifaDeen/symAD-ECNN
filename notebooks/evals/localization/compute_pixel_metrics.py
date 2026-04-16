@@ -3,10 +3,6 @@ Compute Pixel-Level Localization Metrics.
 
 This script computes pixel-level metrics for anomaly localization
 by comparing reconstruction error maps against ground truth tumor masks.
-
-Supports dissertation Chapter 8.5 localization analysis.
-
-Author: SymAD-ECNN Project
 Purpose: Evaluate spatial localization accuracy of anomaly detection
 """
 

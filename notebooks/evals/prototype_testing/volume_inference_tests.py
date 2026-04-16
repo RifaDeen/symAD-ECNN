@@ -1,12 +1,6 @@
 """
 Volume Inference Tests for SymAD-ECNN Prototype.
 
-This script tests the volume-level inference functionality by
-processing multiple slices and testing slice aggregation behavior.
-
-Supports dissertation Chapter 8 functional testing.
-
-Author: SymAD-ECNN Project
 Purpose: Verify volume aggregation and multi-slice inference
 """
 

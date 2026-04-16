@@ -4,10 +4,6 @@ ECNN Model Loader for Evaluation.
 This module provides functions to load the trained ECNN model checkpoint
 and define the model architecture for inference during evaluation.
 
-Since importing from the original training notebooks may be complex,
-this module defines the ECNN architecture locally for evaluation purposes.
-
-Purpose: Load ECNN model for threshold experiments and evaluation
 """
 
 import torch
@@ -32,18 +28,6 @@ except ImportError:
 # =============================================================================
 
 class ECNNAutoencoder(nn.Module):
-    """
-    Equivariant CNN Autoencoder for brain MRI anomaly detection.
-    
-    This architecture uses E(2)-equivariant convolutional layers that are
-    invariant to rotations, which is beneficial for brain MRI analysis
-    where the orientation should not affect the anomaly detection.
-    
-    The model follows an encoder-decoder structure:
-    - Encoder: Progressively downsamples the input while increasing channels
-    - Decoder: Progressively upsamples to reconstruct the input
-    - The reconstruction error serves as the anomaly score
-    """
     
     def __init__(
         self,

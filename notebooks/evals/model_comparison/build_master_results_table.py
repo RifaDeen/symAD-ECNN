@@ -3,10 +3,7 @@ Build Master Results Table for SymAD-ECNN Model Comparison.
 
 This script gathers all model result JSON files from Google Drive,
 normalizes their schemas, and produces a unified comparison table
-for dissertation Chapter 8.3 and 8.4.
 
-Author: SymAD-ECNN Project
-Purpose: Generate master model comparison tables for benchmarking
 """
 
 import sys

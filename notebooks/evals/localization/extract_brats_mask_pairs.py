@@ -3,10 +3,6 @@ Extract BraTS Mask Pairs for Localization Evaluation.
 
 This script extracts paired tumor mask and T1 image slices from
 BraTS 2021 dataset for pixel-level anomaly localization evaluation.
-
-Supports dissertation Chapter 8.5 localization analysis.
-
-Author: SymAD-ECNN Project
 Purpose: Prepare ground truth masks for localization metrics
 """
 
